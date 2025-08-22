@@ -1005,20 +1005,24 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                     StringComparer.OrdinalIgnoreCase
                 );
 
-                var exportSerials = await _sqlContext.Exports
-                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()) && e.CheckingB36R > 0)
-                    .Select(e => e.SerialNumber)
+                var exportRecords = await _sqlContext.Exports
+                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()))
                     .ToListAsync();
 
-                var exportSet = new HashSet<string>(
-                    exportSerials.Select(sn => sn.Trim().ToUpper()),
-                    StringComparer.OrdinalIgnoreCase);
+                var exportDict = exportRecords
+                    .GroupBy(e => e.SerialNumber?.Trim().ToUpper() ?? "")
+                    .Select(g => g.OrderByDescending(e => e.ExportDate).First())
+                    .ToDictionary(
+                        e => e.SerialNumber.Trim().ToUpper(),
+                        e => (e.CheckingB36R, e.ExportDate),
+                        StringComparer.OrdinalIgnoreCase);
 
                 var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "ScrapLackTask",
                     "ScrapHasTask",
                     "WaitingLink",
+                    "Linked",
                     "WatitingScrap",
                     "ApproveBGA",
                     "WaitingApproveBGA",
@@ -1058,14 +1062,22 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                         }
                         else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
                         {
-                            //var wipSfc = b.WIP_GROUP_SFC?.Trim();
-                            //if (!string.IsNullOrEmpty(wipSfc) && wipSfc.IndexOf("B36R", StringComparison.OrdinalIgnoreCase) < 0)
-                            //{
-                            //    status = "Linked";
-                            //}
-                            if (exportSet.Contains(sn))
+                            if (exportDict.TryGetValue(sn, out var exportInfo))
                             {
-                                status = "WaitingLink";
+                                var testTime = b.TEST_TIME;
+                                if (exportInfo.ExportDate.HasValue && testTime.HasValue && exportInfo.ExportDate < testTime)
+                                {
+                                    status = "RepairInRE";
+                                }
+                                else
+                                {
+                                    status = exportInfo.CheckingB36R switch
+                                    {
+                                        1 => "WaitingLink",
+                                        2 => "Linked",
+                                        _ => "RepairInRE",
+                                    };
+                                }
                             }
                             else
                             {
@@ -1208,14 +1220,17 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                     StringComparer.OrdinalIgnoreCase
                 );
 
-                var exportSerials = await _sqlContext.Exports
-                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()) && e.CheckingB36R > 0)
-                    .Select(e => e.SerialNumber)
+                var exportRecords = await _sqlContext.Exports
+                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()))
                     .ToListAsync();
 
-                var exportSet = new HashSet<string>(
-                    exportSerials.Select(sn => sn.Trim().ToUpper()),
-                    StringComparer.OrdinalIgnoreCase);
+                var exportDict = exportRecords
+                    .GroupBy(e => e.SerialNumber?.Trim().ToUpper() ?? "")
+                    .Select(g => g.OrderByDescending(e => e.ExportDate).First())
+                    .ToDictionary(
+                        e => e.SerialNumber.Trim().ToUpper(),
+                        e => (e.CheckingB36R, e.ExportDate),
+                        StringComparer.OrdinalIgnoreCase);
 
                 var result = repairTaskData.Select(b =>
                 {
@@ -1251,14 +1266,22 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                     }
                     else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        var wipSfc = b.WIP_GROUP_SFC?.Trim();
-                        if (!string.IsNullOrEmpty(wipSfc) && wipSfc.IndexOf("B36R", StringComparison.OrdinalIgnoreCase) < 0)
+                        if (exportDict.TryGetValue(sn, out var exportInfo))
                         {
-                            status = "Linked";
-                        }
-                        else if (exportSet.Contains(sn))
-                        {
-                            status = "WaitingLink";
+                            var testTime = b.TEST_TIME;
+                            if (exportInfo.ExportDate.HasValue && testTime.HasValue && exportInfo.ExportDate < testTime)
+                            {
+                                status = "RepairInRE";
+                            }
+                            else
+                            {
+                                status = exportInfo.CheckingB36R switch
+                                {
+                                    1 => "WaitingLink",
+                                    2 => "Linked",
+                                    _ => "RepairInRE",
+                                };
+                            }
                         }
                         else
                         {
