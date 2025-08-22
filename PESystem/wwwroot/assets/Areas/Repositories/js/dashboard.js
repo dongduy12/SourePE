@@ -480,21 +480,32 @@ document.addEventListener("DOMContentLoaded", function () {
         return `http://10.220.130.119:9090/checking-b36r${params.length ? "?" + params.join("&") : ""}`;
     }
 
+    function toRows(arr) {
+        return (arr || []).map(item => ({
+            sn: item.sn || "N/A",
+            productLine: item.productLine || "N/A",
+            modelName: item.modelName || "N/A",
+            exportDate: item.exportDate || "N/A",
+            linkTime: item.linkTime || "N/A",
+            status: item.status || "N/A"
+        }));
+    }
+
     function loadCounts() {
         fetch(buildUrl())
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById("totaL-linked-mo").textContent = data.linkCount;
-                    document.getElementById("total-waiting-link-mo").textContent = data.awaitingLinkCount;
+                    document.getElementById("totaL-linked-mo").textContent = data.linkCount ?? 0;
+                    document.getElementById("total-waiting-link-mo").textContent = data.awaitingLinkCount ?? 0;
                 } else {
                     console.error("API Error:", data.message);
                     document.getElementById("totaL-linked-mo").textContent = "Error";
                     document.getElementById("total-waiting-link-mo").textContent = "Error";
                 }
             })
-            .catch(error => {
-                console.error("Fetch Error:", error);
+            .catch(err => {
+                console.error("Fetch Error:", err);
                 document.getElementById("totaL-linked-mo").textContent = "Error";
                 document.getElementById("total-waiting-link-mo").textContent = "Error";
             });
@@ -503,67 +514,50 @@ document.addEventListener("DOMContentLoaded", function () {
     filterBtn.addEventListener("click", loadCounts);
     loadCounts();
 
-    // Xử lý sự kiện click cho "Đã link"
+    // === Click "Đã link" ===
     document.getElementById("totaL-linked-mo").addEventListener("click", function () {
         fetch(buildUrl())
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
-                if (data.success && data.data) {
-                    const linkedData = data.data
-                        .filter(item => item.status === "Đã link MO")
-                        .map(item => ({
-                            sn: item.sn || "N/A",
-                            productLine: item.productLine || "N/A",
-                            modelName: item.modelName || "N/A",
-                            exportDate: item.exportDate || "N/A",
-                            status: item.status || "N/A"
-                        }));
+                if (data.success) {
+                    const linkedData = toRows(data.linked);
                     if (linkedData.length === 0) {
                         alert("Không có dữ liệu MO đã link để hiển thị.");
                         return;
                     }
                     table.clear();
-                    table.rows.add(linkedData);
-                    table.draw();
+                    table.rows.add(linkedData).draw();
                     $('#dataModal').modal('show');
                     document.getElementById("dataModalLabel").textContent = "Danh sách MO đã link";
                 } else {
                     console.error("API Error:", data.message);
                 }
             })
-            .catch(error => console.error("Fetch Error:", error));
+            .catch(err => console.error("Fetch Error:", err));
     });
 
-    // Xử lý sự kiện click cho "Chờ link"
+    // === Click "Chờ link" ===
     document.getElementById("total-waiting-link-mo").addEventListener("click", function () {
         fetch(buildUrl())
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
-                if (data.success && data.data) {
-                    const awaitingData = data.data
-                        .filter(item => item.status === "Chờ Link MO")
-                        .map(item => ({
-                            sn: item.sn || "N/A",
-                            productLine: item.productLine || "N/A",
-                            modelName: item.modelName || "N/A",
-                            exportDate: item.exportDate || "N/A",
-                            status: item.status || "N/A"
-                        }));
+                if (data.success) {
+                    const awaitingData = toRows(data.awaiting);
                     if (awaitingData.length === 0) {
                         alert("Không có dữ liệu MO chờ link để hiển thị.");
                         return;
                     }
                     table.clear();
-                    table.rows.add(awaitingData);
-                    table.draw();
+                    table.rows.add(awaitingData).draw();
                     $('#dataModal').modal('show');
                     document.getElementById("dataModalLabel").textContent = "Danh sách MO chờ link";
                 } else {
                     console.error("API Error:", data.message);
                 }
             })
-            .catch(error => console.error("Fetch Error:", error));
+            .catch(err => console.error("Fetch Error:", err));
     });
+
 });
 
 // Quản lý Export B36R

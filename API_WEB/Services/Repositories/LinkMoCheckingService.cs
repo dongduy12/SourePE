@@ -11,7 +11,7 @@ namespace API_WEB.Services.Repositories
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<LinkMoCheckingService> _logger;
-        private readonly TimeSpan _interval = TimeSpan.FromMinutes(10);
+        private readonly TimeSpan _interval = TimeSpan.FromMinutes(2);
 
         public LinkMoCheckingService(IServiceProvider serviceProvider, ILogger<LinkMoCheckingService> logger)
         {
