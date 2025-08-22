@@ -224,22 +224,23 @@ namespace API_WEB.Controllers.Repositories
                 var sn = exp.SerialNumber;
                 var wipGroup = wipGroups.ContainsKey(sn) ? wipGroups[sn] : null;
                 var r107Info = r107Infos.ContainsKey(sn) ? r107Infos[sn] : (null, null);
-                var moNumber = r107Info.MoNumber;
                 var wipGroupR107 = r107Info.WipGroup;
 
                 var linked = false;
-                if (wipGroup.Contains("B36R_TO_SFG"))
+                if (!string.IsNullOrEmpty(wipGroup) && wipGroup.Contains("B36R_TO_SFG"))
                 {
-                    if (wipGroupR107.Contains("REPAIR_B36R"))
+                    if (!string.IsNullOrEmpty(wipGroupR107) && wipGroupR107.Contains("REPAIR_B36R"))
                     {
                         linked = true;
                     }
-                    else if (!(!string.IsNullOrEmpty(wipGroup) && wipGroup.Contains("B36R") &&
-                             !string.IsNullOrEmpty(wipGroupR107) && wipGroupR107.Contains("B36R")))
+                    else if (!(wipGroup.Contains("B36R") &&
+                               !string.IsNullOrEmpty(wipGroupR107) && wipGroupR107.Contains("B36R")))
                     {
-                        linked= true;
+                        linked = true;
                     }
-                }else if(wipGroup.Contains("KANBAN_IN") || wipGroup.Contains("KANBAN_OUT"))
+                }
+                else if (!string.IsNullOrEmpty(wipGroup) &&
+                         (wipGroup.Contains("KANBAN_IN") || wipGroup.Contains("KANBAN_OUT")))
                 {
                     if (!exp.KanbanTime.HasValue)
                     {
@@ -283,14 +284,12 @@ namespace API_WEB.Controllers.Repositories
                         (e.CheckingB36R == 2 && e.LinkTime <= endDate.Value));
                 }
 
-                if (!startDate.HasValue && !endDate.HasValue)
-                {
-                    query = query
-                        .GroupBy(e => e.SerialNumber)
-                        .Select(g => g.OrderByDescending(x => x.ExportDate).First());
-                }
-
-                var exports = await query.ToListAsync();
+                var exports = await query
+                    .GroupBy(e => e.SerialNumber)
+                    .Select(g => g.OrderByDescending(x => x.ExportDate)
+                        .ThenByDescending(x => x.LinkTime)
+                        .First())
+                    .ToListAsync();
 
                 var awaiting = exports
                     .Where(e => e.CheckingB36R == 1)
