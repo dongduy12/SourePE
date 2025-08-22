@@ -1,0 +1,328 @@
+﻿@{
+    ViewData["Title"] = "Repository";
+    Layout = "~/Areas/Repositories/Views/Shared/_Layout_Repo.cshtml";
+}
+
+<!-- Header -->
+<header class="my-4">
+    <h1>Dashboard Bonepile 2.0</h1>
+    <div class="filters">
+        <div class="form-group">
+            <label for="startDate">Từ ngày:</label>
+            <input type="datetime-local" id="startDate" class="form-control" value="2025-03-16T11:00">
+        </div>
+        <div class="form-group">
+            <label for="endDate">Đến ngày:</label>
+            <input type="datetime-local" id="endDate" class="form-control" />
+        </div>
+        <button id="applyFilters" class="btn btn-primary">Áp dụng</button>
+    </div>
+</header>
+
+<!-- Loading Indicator -->
+@*<div id="loading" style="display: none; text-align: center; margin: 20px;">
+    <strong>Đang tải...</strong>
+</div>*@
+
+<!-- KPI Cards -->
+<div class="kpi-cards row my-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Bonepile 2.0</h5>
+                <p class="card-text" id="totalCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title">Scrap</h5>
+                <p class="card-text" id="scrapCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Waiting Scrap</h5>
+                <p class="card-text" id="waitingScrapCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Repair</h5>
+                <p class="card-text" id="repairCount">N/A</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Donut Chart and sumMaterialsTable -->
+<div class="row my-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
+                <h5 class="card-title">Phân bố trạng thái</h5>
+                <canvas id="statusDonutChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
+                <h5 class="card-title">Phân bố thời gian chờ</h5>
+                <canvas id="agingDonutChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row my-4">
+    <div class="col-md-12">
+        <div class="card">
+            <!--HTML CỦA SPINER-->
+            <div id="spinner-overlay">
+                <span class="loader"></span>
+            </div>
+            <div class="card-body">
+                <table id="sumMaterialsTable" class="display table table-bordered mt-1 table-striped datatable-table" style="width:100%">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <select id="statusFilter" class="form-control">
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="Repair">Repair</option>
+                                <option value="CheckOut">CheckOut</option>
+                                <option value="CheckIn">CheckIn</option>
+                                <option value="WaitingLink">WaitingLink</option>
+                                <option value="Online">Online</option>
+                                <option value="WaitingApproveScrap">WaitingApproveScrap</option>
+                                <option value="Scrap">Scrap</option>
+                            </select>
+                        </div>
+                    </div>
+                    <thead>
+                        <tr>
+                            <th>SERIAL_NUMBER</th>
+                            <th>PRODUCT_LINE</th>
+                            <th>MODEL_NAME</th>
+                            <th>MO_NUMBER</th>
+                            <th>WIP_GROUP</th>
+                            <th>FAIL_STATION</th>
+                            <th>TEST_CODE</th>
+                            <th>ERROR_DESC</th>
+                            <th>TIME</th>
+                            <th>FLAG</th>
+                            <th>PO_NO</th>
+                            <th>PO_ITEM</th>
+                            <th>FAIL_AGING</th>
+                            <th>VERSION_CODE</th>
+                            <th>WORK_FLAG</th>
+                            <th>ERROR_FLAG</th>
+                            <th>MO_NEW</th>
+                            <th>STATUS</th>
+                            <th>CHECKIN_TIME</th>
+                            <th>CHECKOUT_TIME</th>
+                            <th>SCRAP_STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/chart.umd.min.js"></script>
+    <script src="~/lib/jquery-3.7.0.min.js"></script>
+    <script src="~/lib/jquery.datatables.min.js"></script>
+    <script src="~/lib/datatables.bootstrap5.min.js"></script>
+    <script src="~/lib/datatables.buttons.min.js"></script>
+    <script src="~/lib/buttons.html5.min.js"></script>
+    <script src="~/lib/axios.min.js"></script>
+    <script src="~/lib/jszip.min.js"></script>
+    <script src="~/assets/areas/repositories/js/bonepile.js?v=@DateTime.Now.Ticks"></script>
+
+    <style>
+        .dataTables_wrapper .top {
+            position: sticky;
+            top: 0;
+            background-color: #fff; /* hoặc màu của header */
+            z-index: 10;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .excel-button {
+            border: none; /* Bỏ viền mặc định của button */
+            background: none; /* Bỏ nền mặc định */
+            width: 32px; /* Kích thước icon */
+            height: 32px;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            color: #333;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+            .filters .form-group {
+                flex: 1;
+                min-width: 200px;
+            }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+            .checkbox-group label {
+                margin-right: 10px;
+            }
+
+        .kpi-cards .card {
+            margin-bottom: 15px;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+        }
+
+        .card-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .card {
+            position: relative;
+            overflow: auto;
+            max-height: 500px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .table {
+            width: 100%;
+        }
+
+        #loading {
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        #statusDonutChart {
+            max-height: 300px;
+            max-width: 300px;
+            margin: 0 auto;
+            height: auto !important;
+        }
+
+                @@media (max-width: 768px) {
+            .table-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .status-filter {
+                flex: 0 0 100%;
+            }
+
+            .dataTables_filter {
+                text-align: left;
+            }
+
+                .dataTables_filter input {
+                    width: 100%;
+                }
+        }
+
+
+        #sumMaterialsTable {
+            width: 100% !important;
+        }
+        /* Style cho nút Export */
+        #sumMaterialsTable_wrapper .top .dt-buttons {
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .dt-button {
+            background-color: none;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .top.d-flex {
+            display: flex;
+            align-items: center;
+            gap: 5px; /* Khoảng cách nhỏ giữa 3 phần tử đầu */
+        }
+
+        .dataTable_wrapper {
+            margin: 0 !important;
+        }
+
+        .top.d - flex {
+            display: flex;
+            align - items: center;
+            gap: 10px; /* Khoảng cách giữa các phần tử */
+        }
+
+        .top.dataTables_length {
+            margin: 0;
+        }
+
+        .top.dt - buttons {
+            margin: 0;
+        }
+
+        .top.status - filter {
+            margin: 0;
+        }
+
+        #statusFilter {
+            padding: 5px;
+            border - radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .dataTables_filter {
+            margin-left: auto;
+        }
+
+            .dataTables_filter input {
+                padding: 5px;
+                border - radius: 4px;
+                border: 1px solid #ccc;
+                width: 200px;
+            }
+
+        .dataTables_length select {
+            margin: 10px !important;
+        }
+    </style>
+}

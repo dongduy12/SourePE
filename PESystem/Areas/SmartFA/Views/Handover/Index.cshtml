@@ -1,0 +1,153 @@
+﻿@{
+    ViewData["Title"] = "SmartFA Area";
+}
+@{
+    Layout = "~/Areas/SmartFA/Views/Shared/_Layout_SmartFA.cshtml";
+}
+
+<section class="dashboard section">
+
+    <!-- phần hiển thị bảng search-->
+    <div class="container">
+        <!-- Form nhập SN -->
+        <form id="sn-form">
+            <div class="form-group">
+                @*<label for="serialNumber">SerialNumber:</label>*@
+                <input type="text" id="serialNumber" placeholder="Nhập Serial Number..." required>
+            </div>
+        </form>
+        <div class="action-buttons mt-3">
+            <button id="GiaoBan" class="btn btn-ne btn-fa-all">GIAO BẢN</button>
+            <button id="NhanBan" class="btn btn-ne btn-arc-all">NHẬN BẢN</button>
+        </div>
+        <!-- Bảng hiển thị danh sách SN -->
+    </div>
+    <div class="mt-2">
+        <table id="sn-table" class="table table-bordered datatable-table table-striped">
+            <thead>
+                <tr>
+                    <th>SERIAL_NUMBER</th>
+                    <th>MODEL_NAME</th>
+                    <th>TEST_CODE</th>
+                    <th>ERROR_DESC</th>
+                    <th>WIP_GROUP</th>
+                    <th>STATUS</th>
+                    <th>HƯỚNG_DẪN</th>
+                    <th>OWNER</th>
+                    <th>HANDOVER</th>
+                    <th>LOCATION</th>
+                    <th>ACTION</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+                <!-- Các hàng sẽ được thêm ở đây -->
+            </tbody>
+        </table>
+    </div>
+
+    <input type="hidden" id="analysisPerson" value="@User.Identity.Name" />
+
+    <!-- phần hiển thị biển đồ, bằng owner -->
+    <div class="chart-container" style="width: 80%; margin: auto; padding: 20px;">
+        <canvas id="statusChart" style="max-height: 400px;"></canvas>
+    </div>
+    <div class="chart-container" style="width: 80%; margin: auto; padding: 20px;">
+        <canvas id="onlineChart" style="max-height: 400px;"></canvas>
+    </div>
+    <div class="chart-container" style="width: 80%; margin: auto; padding: 20px;">
+        <div id="OwnerTableContainer"></div>
+    </div>
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-lg-custom">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusModalLabel">Danh Sách Serial Numbers</h5>
+                    <button type="button" class="btn-ne btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table id="modal-sn-table" class="table table-bordered datatable-table table-striped">
+                        <thead>
+                            <tr>
+                                <th>SERIAL_NUMBER</th>
+                                <th>MODEL_NAME</th>
+                                <th>TEST_GROUP</th>
+                                <th>TEST_CODE</th>
+                                <th>ERROR_DESC</th>
+                                <th>PRE_STATUS</th>
+                                <th>STATUS</th>
+                                <th>OWNER</th>
+                                <th>TIME</th>
+                                <th>HANDOVER</th>
+                                <th>LOCATION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dữ liệu sẽ được chèn tại đây -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ne">
+                        <img id="exportExcelBtn" src="~/assets/img/excel.png" alt="Excel Icon" class="flex-fill" style="width:24px; height:24px;">
+                    </button>
+                    <button type="button" class="btn btn-ne" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+
+
+        .modal-lg-custom {
+            max-width: 90%; /* Mở rộng modal */
+        }
+
+        .modal-body {
+            overflow-x: auto; /* Thêm scroll ngang nếu cần */
+            overflow-y: auto; /* Thêm scroll dọc nếu cần */
+            max-height: 80vh; /* Giới hạn chiều cao modal để tránh tràn màn hình */
+        }
+
+        table {
+            word-wrap: break-word; /* Ngắt dòng dữ liệu trong table */
+            table-layout: fixed; /* Sử dụng layout cố định */
+            font-size: 12px;
+        }
+
+        /* Đảm bảo cột và tiêu đề cố định hiển thị rõ ràng */
+        .table.dataTable thead tr > .dtfc-fixed-left {
+            background-color: #0c0c0c !important; /* Màu nền cho cột cố định */
+        }
+        /* Thêm hiệu ứng hover cho hàng */
+        .datatable-table tbody tr:hover td,
+        .datatable-table tbody tr:hover th {
+            background-color: #76b900 !important;
+            /*transition: background-color 0.2s ease;*/
+        }
+
+        /* (Tùy chọn) Giữ màu đặc biệt cho hàng auto-block khi hover */
+        .datatable-table tbody tr.auto-block:hover td,
+        .datatable-table tbody tr.auto-block:hover th {
+            background-color: #76b900 !important;
+            /*transition: background-color 0.2s ease;*/
+        }
+        td, th {
+            white-space: nowrap; /* Không xuống dòng trừ khi cần */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Hiển thị "..." khi dữ liệu quá dài */
+        }
+
+    </style>
+
+
+</section>
+@section Scripts {
+    <script src="~/assets/vendor/apexcharts/apexcharts.min.js"></script>
+    <script src="~/assets/vendor/chart.js/chart.umd.js"></script>
+    <script src="~/assets/vendor/echarts/echarts.min.js"></script>
+    <script src="~/assets/vendor/tinymce/tinymce.min.js"></script>
+    <script src="~/assets/vendor/chart.js/chartjs-plugin-datalabels.js"></script>
+    <script src="~/assets/areas/smartfa/js/Handover.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/assets/areas/smartfa/js/Handover.js?v=@DateTime.Now.Ticks"></script>
+}

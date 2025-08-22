@@ -1,0 +1,141 @@
+﻿@{
+    ViewData["Title"] = "SmartFA Area";
+}
+@{
+    Layout = "~/Areas/SmartFA/Views/Shared/_Layout_SmartFA.cshtml";
+}
+<section class="dashboard section">
+    <div class="row d-flex flex-wrap">
+        <!-- Biểu đồ Số lượng vào/ra -->
+        <div class="col-md-6">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title text-center font-weight-bold">TRẠNG THÁI</h5>
+                    </div>
+                    <div id="statusChart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Biểu đồ TOP MODEL -->
+        <div class="col-md-6">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <h5 class="d-flex justify-content-between align-items-center">TOP MODEL</h5>
+                    <div id="container" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row d-flex flex-wrap mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title font-weight-bold mb-0">CHECK IN/OUT &amp; TỒN KHO (BEFORE KANBAN)</h5>
+                        <div class="d-flex">
+                            <input type="datetime-local" id="cioStartDate" class="form-control form-control-sm me-2" />
+                            <input type="datetime-local" id="cioEndDate" class="form-control form-control-sm me-2" />
+                            <button id="loadCioBtn" class="btn btn-ne btn-sm">SEARCH</button>
+                        </div>
+                    </div>
+                    <div id="checkInOutChart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal chứa DataTable -->
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-lg-custom">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusModalLabel">Danh Sách Serial Numbers</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body table-responsive">
+                    <table id="modal-sn-table" class="table table-bordered datatable-table table-striped">
+                        <thead>
+                            <tr>
+                                <th>SERIAL_NUMBER</th>
+                                <th>PRODUCT_LINE</th>
+                                <th>MODEL_NAME</th>
+                                <th>WIP_GROUP</th>
+                                <th>TEST_GROUP</th>
+                                <th>ERROR_CODE</th>
+                                <th>ERROR_DESC</th>
+                                <th>STATUS_FA</th>
+                                <th>PERSON_CONFIRM</th>
+                                <th>TIME_CONFIRM</th>
+                                <th>HANDLER</th>
+                                <th>LOCATION</th>
+                                <th>BORROW_STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dữ liệu sẽ được chèn tại đây -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button id="exportExcelBtn" class="btn btn-primary">
+                        <img src="~/assets/img/excel.png" alt="Excel Icon" style="width:24px; height:24px;">
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal hiển thị chi tiết Check In/Out -->
+    <div class="modal fade" id="cioModal" tabindex="-1" aria-labelledby="cioModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-lg-custom">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cioModalLabel">Chi tiết</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body table-responsive">
+                    <table id="cio-modal-table" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>SERIAL_NUMBER</th>
+                                <th>MODEL_NAME</th>
+                                <th>PRODUCT_LINE</th>
+                                <th>LOCATION</th>
+                                <th>PERSON_IN</th>
+                                <th>IN_DATE</th>
+                                <th>OUT_DATE</th>
+                                <th>REPAIRER</th>
+                                <th>STATION</th>
+                                <th>ERROR_CODE</th>
+                                <th>ERROR_DESC</th>
+                                <th>TYPE</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button id="exportCioExcelBtn" class="btn btn-primary">
+                        <img src="~/assets/img/excel.png" alt="Excel Icon" style="width:24px; height:24px;">
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<style>
+     .modal-lg-custom {
+        max-width: 90% !important;
+    }
+</style>
+@section Scripts {
+    <script src="~/lib/datatable/jquery.datatables.min.js"></script>
+    <script src="~/assets/vendor/chart.js/highcharts.js"></script>
+    <script src="~/assets/vendor/echarts/echarts.min.js"></script>
+    <script src="~/assets/areas/smartfa/js/dashboardfa.js?v=@DateTime.Now.Ticks"></script>
+}

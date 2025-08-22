@@ -1,0 +1,347 @@
+﻿@{
+    ViewData["Title"] = "Material Area";
+    Layout = "~/Areas/MaterialSystem/views/Shared/Layout_material.cshtml";
+}
+
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h1 class="h4 mb-0 text-center">Tìm Kiếm Thông Tin Linh Kiện</h1>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <input type="text" id="serialNumber" class="form-control" placeholder="Nhập SerialNumber...">
+            </div>
+            <div class="col-md-4">
+                <input type="text" id="refDes" class="form-control" placeholder="Nhập vị trí...">
+            </div>
+            <div class="col-md-2">
+                <button onclick="search()" class="btn btn-primary w-100">Tìm kiếm</button>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <h2 class="h5 fw-semibold mb-3">Thông Tin Liệu Trên PCB</h2>
+            <div class="table-responsive">
+                <table id="dcLcTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>P_SN</th>
+                            <th>MODEL_NAME</th>
+                            <th>MÃ_LIỆU</th>
+                            <th>VENDOR_CODE</th>
+                            <th>VENDOR_NAME</th>
+                            <th>REF_DES</th>
+                            <th>DATE_CODE</th>
+                            <th>LOT_CODE</th>
+                            <th>PROCESS_FLAG</th>
+                            <th>STATION</th>
+                            <th>GROUP_NAME</th>
+                            <th>WORK_TIME</th>
+                            <th>WO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dcLcTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <h2 class="h5 fw-semibold mb-3">Thông Tin Liệu Trong Kho</h2>
+            <div class="table-responsive">
+                <table id="materialTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>MÃ_LIỆU</th>
+                            <th>VENDOR</th>
+                            <th>DATE_CODE</th>
+                            <th>LOT_CODE</th>
+                            <th>VỊ_TRÍ</th>
+                            <th>TỔNG_LĨNH</th>
+                            <th>Qty'OK</th>
+                            <th>Qty'NG</th>
+                            <th>ĐÃ_PHÁT</th>
+                            <th>ĐÃ_PHẾ</th>
+                            <th>ESD</th>
+                            <th>NOTE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="materialTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        /* CSS cho tooltip tùy chỉnh */
+        .custom-tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            white-space: normal;
+            max-width: 300px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        /* Hiển thị tooltip khi di chuột vào */
+        td:hover .custom-tooltip {
+            display: block;
+        }
+        /* Giới hạn độ rộng cột */
+        #materialTable th, #materialTable td {
+            white-space: nowrap; /* Ngăn xuống dòng */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Hiển thị dấu "..." nếu nội dung quá dài */
+            max-width: 80px; /* Giới hạn độ rộng cột */
+        }
+
+        /* Cố định thanh tìm kiếm và phân trang khi cuộn ngang */
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_paginate {
+            position: sticky;
+            top: 0;
+            background-color: #fff;
+            z-index: 1;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+
+        /* Đảm bảo thanh tìm kiếm và phân trang không bị che khuất */
+        .dataTables_wrapper {
+            overflow-x: auto;
+        }
+            /* Điều chỉnh chiều rộng tối thiểu cho wrapper */
+            .dataTables_wrapper .dataTables_scroll {
+                min-width: 100%;
+            }
+
+        /* Thêm hiệu ứng hover cho hàng */
+        .datatable-table tbody tr:hover td,
+        .datatable-table tbody tr:hover th {
+            background-color: #76b900 !important;
+        }
+    </style>
+
+    <script>
+        // Hàm tạo nội dung cho ô với tooltip
+        function createTooltipCell(data) {
+            return `<span class="tooltip-trigger" data-tooltip="${data || ''}">${data || ''}</span>`;
+        }
+
+        // Hàm gắn sự kiện tooltip cho các phần tử
+        function attachTooltipEvents() {
+            $('.tooltip-trigger').each(function () {
+                const $this = $(this);
+                if (!$this.data('tooltip-initialized')) {
+                    $this.on('mouseover', function (e) {
+                        const tooltipText = $this.data('tooltip');
+                        if (tooltipText) {
+                            let tooltip = document.querySelector('.custom-tooltip');
+                            if (!tooltip) {
+                                tooltip = document.createElement('div');
+                                tooltip.className = 'custom-tooltip';
+                                document.body.appendChild(tooltip);
+                            }
+                            tooltip.textContent = tooltipText;
+                            tooltip.style.display = 'block';
+                            tooltip.style.left = (e.pageX + 10) + 'px';
+                            tooltip.style.top = (e.pageY - 20) + 'px';
+                        }
+                    }).on('mousemove', function (e) {
+                        const tooltip = document.querySelector('.custom-tooltip');
+                        if (tooltip && tooltip.style.display === 'block') {
+                            tooltip.style.left = (e.pageX + 10) + 'px';
+                            tooltip.style.top = (e.pageY - 20) + 'px';
+                        }
+                    }).on('mouseout', function () {
+                        const tooltip = document.querySelector('.custom-tooltip');
+                        if (tooltip) {
+                            tooltip.style.display = 'none';
+                        }
+                    });
+                    $this.data('tooltip-initialized', true);
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            // Initialize DataTables for both tables
+            $('#dcLcTable').DataTable({
+                pageLength: 10,
+                scrollX: true,
+                responsive: true,
+                fixedHeader: true
+            });
+
+            $('#materialTable').DataTable({
+                pageLength: 10,
+                scrollX: true,
+                responsive: true,
+                fixedHeader: true
+            });
+        });
+
+        async function search() {
+            const serialNumber = document.getElementById('serialNumber').value;
+            const refDes = document.getElementById('refDes').value.toUpperCase();
+
+            if (!serialNumber || !refDes) {
+                alert('Vui lòng nhập đầy đủ Serial Number và Reference Designator!');
+                return;
+            }
+
+            // Destroy existing DataTables to reinitialize with new data
+            $('#dcLcTable').DataTable().destroy();
+            $('#materialTable').DataTable().destroy();
+
+            // Clear table bodies
+            document.getElementById('dcLcTableBody').innerHTML = '';
+            document.getElementById('materialTableBody').innerHTML = '';
+
+            try {
+                // Call GET_DC_LC API
+                const dcLcResponse = await fetch('http://10.220.130.119:9090/api/RepairStatus/info-allpart/with-refdes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type: 'GET_DC_LC',
+                        item: 'BY-RE-SN',
+                        var_1: serialNumber,
+                        var_2: refDes
+                    })
+                });
+
+                if (!dcLcResponse.ok) {
+                    throw new Error('Lỗi khi gọi API GET_DC_LC');
+                }
+
+                const dcLcData = await dcLcResponse.json();
+
+                // Check if data is empty
+                if (!dcLcData || !dcLcData.result || dcLcData.result.length === 0) {
+                    alert('Không tìm thấy dữ liệu từ API info-allpart/with-refdes!');
+                    return;
+                }
+
+                // Populate GET_DC_LC table with tooltips
+                const dcLcTableBody = document.getElementById('dcLcTableBody');
+                dcLcData.result.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                                <td>${createTooltipCell(item.p_sn)}</td>
+                                <td>${createTooltipCell(item.p_no)}</td>
+                                <td>${createTooltipCell(item.kp_no)}</td>
+                                <td>${createTooltipCell(item.mfr_kp_no)}</td>
+                                <td>${createTooltipCell(item.mfr_name)}</td>
+                                <td>${createTooltipCell(item.ref_des)}</td>
+                                <td>${createTooltipCell(item.date_code)}</td>
+                                <td>${createTooltipCell(item.lot_code)}</td>
+                                <td>${createTooltipCell(item.process_flag)}</td>
+                                <td>${createTooltipCell(item.station)}</td>
+                                <td>${createTooltipCell(item.group_name)}</td>
+                                <td>${createTooltipCell(item.work_time)}</td>
+                                <td>${createTooltipCell(item.wo)}</td>
+                            `;
+                    dcLcTableBody.appendChild(row);
+                });
+
+                // Reinitialize DataTable for dcLcTable
+                $('#dcLcTable').DataTable({
+                    pageLength: 10,
+                    scrollX: true,
+                    responsive: true,
+                    fixedHeader: true
+                });
+
+                // Get unique KP_NO values from the result for material API call
+                const kpNos = [...new Set(dcLcData.result.map(item => item.kp_no))];
+
+                // Call SearchByMaLieu API for each unique KP_NO
+                const materialTableBody = document.getElementById('materialTableBody');
+                for (const kpNo of kpNos) {
+                    const materialResponse = await fetch('http://10.220.130.119:9090/api/MaterialSystem/SearchByMaLieu', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            maLieu: kpNo
+                        })
+                    });
+
+                    if (!materialResponse.ok) {
+                        throw new Error('Lỗi khi gọi API SearchByMaLieu');
+                    }
+
+                    const materialData = await materialResponse.json();
+
+                    if (!materialData || materialData.length === 0) {
+                        console.warn(`Không tìm thấy dữ liệu từ API SearchByMaLieu cho KP_NO: ${kpNo}`);
+                        continue;
+                    }
+
+                    // jugando: Populate Material table with tooltips
+                    materialData.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                                    <td>${createTooltipCell(item.mA_LIEU)}</td>
+                                    <td>${createTooltipCell(item.nhA_CUNG_UNG)}</td>
+                                    <td>${createTooltipCell(item.datE_CODE)}</td>
+                                    <td>${createTooltipCell(item.loT_CODE)}</td>
+                                    <td>${createTooltipCell(item.location)}</td>
+                                    <td>${createTooltipCell(item.tonG_LINH)}</td>
+                                    <td>${createTooltipCell(item.sO_LUONG_OK)}</td>
+                                    <td>${createTooltipCell(item.sO_LUONG_NG)}</td>
+                                    <td>${createTooltipCell(item.chO_MUON)}</td>
+                                    <td>${createTooltipCell(item.dA_BAO_PHE)}</td>
+                                    <td>${createTooltipCell(item.esd)}</td>
+                                    <td>${createTooltipCell(item.remark)}</td>
+                                `;
+                        materialTableBody.appendChild(row);
+                    });
+                }
+
+                // Reinitialize DataTable for materialTable
+                $('#materialTable').DataTable({
+                    pageLength: 10,
+                    scrollX: true,
+                    responsive: true,
+                    fixedHeader: true
+                });
+
+                // Attach tooltip events after populating tables
+                attachTooltipEvents();
+
+            } catch (error) {
+                alert(`Đã xảy ra lỗi: ${error.message}`);
+            }
+        }
+
+        // CSS cho tooltip
+        const style = document.createElement('style');
+        style.textContent = `
+                    .custom-tooltip {
+                        position: absolute;
+                        background-color: #333;
+                        color: #fff;
+                        padding: 5px 10px;
+                        border-radius: 3px;
+                        font-size: 12px;
+                        z-index: 1000;
+                        display: none;
+                        max-width: 200px;
+                        word-wrap: break-word;
+                    }
+                `;
+        document.head.appendChild(style);
+    </script>
+}

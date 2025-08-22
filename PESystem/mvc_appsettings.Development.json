@@ -1,0 +1,9 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ApiBaseUrl": "http://10.220.130.119:9090"
+}

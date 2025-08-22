@@ -1,0 +1,277 @@
+﻿<h2>Quản lý người dùng</h2>
+
+<div class="search-container">
+    <input type="text" id="globalSearch" placeholder="Tìm kiếm..." style="padding: 5px; width: 200px; margin-bottom: 10px; border-radius: 8px;">
+</div>
+
+<div id="jsGrid"></div>
+
+@section Scripts {
+    <link href="~/lib/jsgrid/jsgrid.min.css" rel="stylesheet" />
+    <link href="~/lib/jsgrid/jsgrid-theme.min.css" rel="stylesheet" />
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jsgrid/jsgrid.min.js"></script>
+    <script>
+        $(function () {
+            let originalData = [];
+            let gridInstance; // Biến để lưu tham chiếu đến grid
+
+            $("#jsGrid").jsGrid({
+                height: "780px",
+                width: "100%",
+                editing: true,
+                inserting: true,
+                sorting: true,
+                paging: true,
+                autoload: true,
+                pageSize: 15,
+                pageButtonCount: 5,
+                controller: {
+                    loadData: function () {
+                        return $.ajax({
+                            type: "GET",
+                            url: "/api/Admin/GetUsers",
+                            contentType: "application/json"
+                        }).then(response => {
+                            if (response && response.success && Array.isArray(response.data)) {
+                                originalData = response.data;
+                                return response.data;
+                            }
+                            console.error("Dữ liệu API không hợp lệ:", response);
+                            return [];
+                        }).catch(error => {
+                            console.error("Lỗi khi gọi API:", error);
+                            return [];
+                        });
+                    },
+                    insertItem: function (item) {
+                        console.log("Thêm mới item:", item);
+                        if (!item.username || !item.fullName || !item.email || !item.role || !item.department || !item.password) {
+                            alert("Vui lòng điền đầy đủ các trường bắt buộc.");
+                            return Promise.reject(new Error("Thiếu trường bắt buộc"));
+                        }
+
+                        if (item.password.length < 8) {
+                            alert("Mật khẩu phải có ít nhất 8 ký tự.");
+                            return Promise.reject(new Error("Mật khẩu quá ngắn"));
+                        }
+
+                        const allowedAreas = Array.isArray(item.allowedAreas)
+                            ? [...new Set(item.allowedAreas.map(s => s.trim()).filter(s => s))]
+                            : (item.allowedAreas ? item.allowedAreas.split(',').map(s => s.trim()).filter(s => s) : []);
+
+                        if (!allowedAreas.length) {
+                            alert("AllowedAreas không được rỗng.");
+                            return Promise.reject(new Error("AllowedAreas là bắt buộc"));
+                        }
+
+                        return $.ajax({
+                            type: "POST",
+                            url: "/api/Admin/CreateUser",
+                            data: JSON.stringify({
+                                username: item.username,
+                                password: item.password,
+                                role: item.role,
+                                allowedAreas: allowedAreas,
+                                fullName: item.fullName,
+                                email: item.email,
+                                department: item.department
+                            }),
+                            contentType: "application/json",
+                            dataType: "json"
+                        }).then(response => {
+                            if (response && response.success && response.data) {
+                                $("#jsGrid").jsGrid("loadData");
+                                return response.data;
+                            }
+                            throw new Error(response.message || "Thêm người dùng thất bại");
+                        }).catch(error => {
+                            console.error("Lỗi khi thêm người dùng:", error.responseJSON || error);
+                            alert("Lỗi: " + (error.responseJSON?.message || "Không thể thêm người dùng"));
+                            return null;
+                        });
+                    },
+                    updateItem: function (item) {
+                        console.log("Cập nhật item trước khi xử lý:", item);
+                        if (!item.userId || !item.username || !item.fullName || !item.email || !item.role || !item.department) {
+                            alert("Vui lòng điền đầy đủ các trường bắt buộc.");
+                            return Promise.reject(new Error("Thiếu trường bắt buộc"));
+                        }
+
+                        // Sử dụng tham chiếu gridInstance để truy cập fields
+                        const allowedAreasField = gridInstance.fields.find(f => f.name === "allowedAreas");
+                        const editInput = $(".jsgrid-edit-input");
+                        const allowedAreasValue = allowedAreasField.editValue.call({ input: editInput });
+
+                        console.log("Giá trị từ editValue:", allowedAreasValue);
+                        console.log("Giá trị allowedAreas từ item trước khi cập nhật:", item.allowedAreas);
+
+                        // Cập nhật item.allowedAreas
+                        item.allowedAreas = allowedAreasValue;
+
+                        const allowedAreas = Array.isArray(item.allowedAreas)
+                            ? item.allowedAreas.map(s => s.trim()).filter(s => s)
+                            : (item.allowedAreas ? item.allowedAreas.split(',').map(s => s.trim()).filter(s => s) : []);
+
+                        if (!allowedAreas.length) {
+                            alert("AllowedAreas không được rỗng.");
+                            return Promise.reject(new Error("AllowedAreas là bắt buộc"));
+                        }
+
+                        console.log("Giá trị allowedAreas từ item sau khi cập nhật:", item.allowedAreas);
+
+                        const requestData = {
+                            userId: item.userId,
+                            fullName: item.fullName,
+                            role: item.role,
+                            allowedAreas: allowedAreas,
+                            email: item.email,
+                            department: item.department
+                        };
+                        console.log("Dữ liệu gửi lên server:", requestData);
+
+                        return $.ajax({
+                            type: "POST",
+                            url: "/api/Admin/EditUser",
+                            data: JSON.stringify(requestData),
+                            contentType: "application/json",
+                            dataType: "json"
+                        }).then(response => {
+                            console.log("Phản hồi từ server:", response);
+                            if (response && response.success && response.data) {
+                                const currentData = $("#jsGrid").jsGrid("option", "data");
+                                const updatedIndex = currentData.findIndex(item => item.userId === response.data.userId);
+                                if (updatedIndex !== -1) {
+                                    currentData[updatedIndex] = response.data;
+                                    $("#jsGrid").jsGrid("option", "data", currentData);
+                                } else {
+                                    $("#jsGrid").jsGrid("loadData");
+                                }
+                                return response.data;
+                            }
+                            throw new Error(response.message || "Cập nhật người dùng thất bại");
+                        }).catch(error => {
+                            console.error("Lỗi khi cập nhật người dùng:", error.responseJSON || error);
+                            alert("Lỗi: " + (error.responseJSON?.message || "Không thể cập nhật người dùng"));
+                            return null;
+                        });
+                    },
+                    deleteItem: function (item) {
+                        return $.ajax({
+                            type: "DELETE",
+                            url: "/api/Admin/DeleteUser/" + item.userId,
+                            contentType: "application/json"
+                        }).then(response => {
+                            if (response && response.success) {
+                                $("#jsGrid").jsGrid("loadData");
+                                return response;
+                            }
+                            throw new Error(response.message || "Xóa người dùng thất bại");
+                        }).catch(error => {
+                            console.error("Lỗi khi xóa người dùng:", error.responseJSON || error);
+                            alert("Lỗi: " + (error.responseJSON?.message || "Không thể xóa người dùng"));
+                            return null;
+                        });
+                    }
+                },
+                fields: [
+                    { name: "userId", type: "number", width: 50, key: true },
+                    { name: "username", type: "text", width: 150, validate: "required" },
+                    { name: "fullName", type: "text", width: 200, validate: "required" },
+                    {
+                        name: "role",
+                        type: "select",
+                        items: [
+                            { Name: "User", Id: "User" },
+                            { Name: "Admin", Id: "Admin" },
+                            { Name: "SuperAdmin", Id: "SuperAdmin" }
+                        ],
+                        valueField: "Id",
+                        textField: "Name",
+                        width: 100,
+                        validate: "required"
+                    },
+                    {
+                        name: "allowedAreas",
+                        type: "text",
+                        width: 200,
+                        validate: "required",
+                        itemTemplate: function (value) {
+                            return Array.isArray(value) ? value.join(", ") : value || "";
+                        },
+                        editTemplate: function (value) {
+                            const inputValue = Array.isArray(value) ? value.join(", ") : (value || "");
+                            this.input = $("<input>").addClass("jsgrid-edit-input").val(inputValue);
+                            console.log("Giá trị ban đầu trong input (editTemplate):", inputValue);
+                            this.input.on("change", function () {
+                                console.log("Giá trị input sau khi thay đổi:", $(this).val());
+                            });
+                            return this.input[0];
+                        },
+                        insertTemplate: function () {
+                            this.input = $("<input>").addClass("jsgrid-insert-input");
+                            return this.input[0];
+                        },
+                        insertValue: function () {
+                            if (!this.input || !this.input.val) {
+                                console.error("this.input không được định nghĩa hoặc không có giá trị.");
+                                return [];
+                            }
+                            const value = this.input.val().trim();
+                            console.log("Giá trị insertValue:", value);
+                            return value ? value.split(",").map(s => s.trim()).filter(s => s) : [];
+                        },
+                        editValue: function () {
+                            if (!this.input || !this.input.val) {
+                                console.error("this.input không được định nghĩa hoặc không có giá trị.");
+                                return [];
+                            }
+                            const value = this.input.val().trim();
+                            console.log("Giá trị từ input (editValue):", value);
+                            const result = value ? value.split(",").map(s => s.trim()).filter(s => s) : [];
+                            console.log("Mảng allowedAreas sau khi xử lý:", result);
+                            return result;
+                        }
+                    },
+                    { name: "email", type: "text", width: 200, validate: { validator: "required", message: "Email là bắt buộc." } },
+                    { name: "department", type: "text", width: 150, validate: "required" },
+                    { name: "password", type: "text", width: 150, inserting: true, editing: false, validate: { validator: "required", message: "Password là bắt buộc khi thêm." } },
+                    {
+                        type: "control",
+                        width: 100,
+                        editButton: true,
+                        deleteButton: true,
+                        insertButton: true
+                    }
+                ],
+                onInit: function (args) {
+                    gridInstance = this; // Lưu tham chiếu đến instance của grid
+                }
+            });
+
+            function debounce(func, wait) {
+                let timeout;
+                return function (...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), wait);
+                };
+            }
+
+            $("#globalSearch").on("keyup", debounce(function () {
+                let searchText = $(this).val().toLowerCase();
+                let filteredData = originalData.filter(item => {
+                    return (
+                        (item.username && item.username.toLowerCase().includes(searchText)) ||
+                        (item.fullName && item.fullName.toLowerCase().includes(searchText)) ||
+                        (item.role && item.role.toLowerCase().includes(searchText)) ||
+                        (item.email && item.email.toLowerCase().includes(searchText)) ||
+                        (item.department && item.department.toLowerCase().includes(searchText)) ||
+                        (item.allowedAreas && Array.isArray(item.allowedAreas) && item.allowedAreas.some(area => area && area.toLowerCase().includes(searchText)))
+                    );
+                });
+                $("#jsGrid").jsGrid("option", "data", filteredData);
+            }, 300));
+        });
+    </script>
+
+}

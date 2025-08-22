@@ -1,0 +1,91 @@
+﻿@{
+    ViewData["Title"] = "DDR TOOL";
+}
+@{
+    Layout = "~/Areas/DDR/Views/Shared/Layout_DDR.cshtml";
+}
+<section class="dashboard section">
+    <!-- Thêm nút Đồng Bộ vào giao diện -->
+    <button id="syncButton" class="btn btn-ne">Đồng Bộ</button>
+
+    <div class="chart-container" style="width: 80%; margin: auto; padding: 20px;">
+        <canvas id="statusChart" style="max-height: 400px;"></canvas>
+    </div>
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-lg-custom">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusModalLabel">Danh Sách Serial Numbers</h5>
+                    <button type="button" class="btn-ne btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body table-responsive">
+                    <table id="modal-sn-table" class="table-bordered table-striped datatable-table">
+                        <thead>
+                            <tr>
+                                <th>SerialNumber</th>
+                                <th>ModelName</th>
+                                <th>WIPGroup</th>
+                                <th>TestCode</th>
+                                <th>Mô tả lỗi</th>
+                                <th>TestTime</th>
+                                <th>TestGroup</th>
+                                <th>DDR-TOOL</th>
+                                <th>NVInstruction</th>
+                                <th>PEInstruction</th>
+                                <th>RERepair</th>
+                                <th>FT-OFF</th>
+                                <th>HASS</th>
+                                <th>FT-HASS</th>
+                                <th>PreviousGroup</th>
+                                <th>GroupCurrent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dữ liệu sẽ được chèn tại đây -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ne">
+                        <img id="exportExcelBtn" src="~/assets/img/excel.png" alt="Excel Icon" class="flex-fill" style="width:24px; height:24px;">
+                    </button>
+                    <button type="button" class="btn btn-ne" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal-lg-custom {
+            max-width: 90%; /* Mở rộng modal */
+        }
+
+        .modal-body {
+            overflow-x: auto; /* Thêm scroll ngang nếu cần */
+            overflow-y: auto; /* Thêm scroll dọc nếu cần */
+            max-height: 80vh; /* Giới hạn chiều cao modal để tránh tràn màn hình */
+        }
+
+        table {
+            word-wrap: break-word; /* Ngắt dòng dữ liệu trong table */
+            table-layout: fixed; /* Sử dụng layout cố định */
+        }
+
+        td, th {
+            white-space: nowrap; /* Không xuống dòng trừ khi cần */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Hiển thị "..." khi dữ liệu quá dài */
+        }
+    </style>
+
+
+</section>
+@section Scripts {
+    <script src="~/assets/vendor/apexcharts/apexcharts.js"></script>
+    <script src="~/assets/vendor/apexcharts/apexcharts.min.js"></script>
+    <script src="~/assets/vendor/chart.js/chart.umd.js"></script>
+    <script src="~/assets/areas/dpu/home.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/assets/vendor/echarts/echarts.min.js"></script>
+    <script src="~/assets/vendor/tinymce/tinymce.min.js"></script>
+    <script src="~/assets/vendor/chart.js/chartjs-plugin-datalabels.js"></script>
+}

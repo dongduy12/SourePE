@@ -1,0 +1,51 @@
+﻿@{
+    ViewData["Title"] = "SmartFA";
+}
+@{
+    Layout = "~/Areas/SmartFA/Views/Shared/_Layout_SmartFA.cshtml";
+}
+<section>
+    <div class="col-md-7">
+        <div class="row">
+            <div class="col-md-5">
+                <textarea name="serialNumbers" id="sn-input" rows="3" placeholder="Nhập mỗi BGA QR Code trên một dòng" class="form-control"></textarea>
+            </div>
+            <div class="col-md-2 flex-column justify-content-between align-items-start">
+                <button id="search-btn" class="btn btn-ne mb-2" type="button" onclick="submitSerialNumberForm()">
+                    <i class="fas fa-search"></i>
+                </button>
+                <img id="export-sn-excel-btn" src="~/assets/img/excel.png" alt="Excel Icon" class="flex-fill" style="width:48px; height:48px;">
+            </div>
+            
+        </div>
+    </div>
+
+    <div class="table-responsive mt-3">
+        <table id="keyPartTable" class="table-bordered table-striped datatable-table" style="overflow-x: auto; overflow-y:auto;">
+            <thead>
+                <tr>
+                    <th>BGA QR Code</th>
+                    <th>Mã Liệu</th>
+                    <th>SN SFG</th>
+                    <th>Mô tả lỗi</th>
+                    <th>Mã lỗi cũ</th>
+                    <th>Mô lỗi mới</th>
+                    <th>Tên Hàng</th>
+                    <th>WIP Group</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dữ liệu sẽ được thêm động -->
+            </tbody>
+        </table>
+    </div>
+</section>
+<style>
+    .btn{
+        margin-bottom: 0px !important;   }
+</style>
+
+@section Scripts {
+    <script src="~/assets/areas/smartfa/js/bga.js?v=@DateTime.Now.Ticks"></script>
+}

@@ -1,0 +1,132 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="wrapper d-flex">
+    <div class="row g-4">
+        <!-- Tăng khoảng cách giữa các mục -->
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Home", new { area = "SmartFA" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/smartfa.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size: 14px; color: black !important;">SMART FA</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Home", new { area = "Repositories" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/repository.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">REPOSITORY</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Home", new { area = "PDRepositories" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/repoPD.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">PD REPOSITORY</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Home", new { area = "DataCloud" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/dataCloud.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">DATA CLOUD</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Home", new { area = "HassBi" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/logo-hass-bi.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">HASS-BI</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Home", new { area = "DDR" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/logo-DDR.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">DDR TOOL</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Home", new { area = "CheckList" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/check_list.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">Check List</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Home", new { area = "Scrap" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/scrap.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">Scrap</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Home", new { area = "MaterialSystem" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/material-logo.jpg" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">Material Control</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "Bonepile", new { area = "Bonepile" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/bonepile.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">Bonepile</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="@Url.Action("Index", "DCLC", new { area = "Allpart" })" class="text-decoration-none">
+                <div class="card shadow-sm text-center custom-card">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <img src="~/assets/img/Allpart.png" class="logo mb-2" />
+                        <span class="fw-bold text-muted" style="font-size:14px; color: black !important;">Check Data</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+

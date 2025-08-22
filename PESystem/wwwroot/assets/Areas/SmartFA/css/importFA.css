@@ -1,0 +1,63 @@
+﻿.container {
+    max-width: 100%;
+    margin: auto;
+    padding: 10px;
+    background: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 8px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+.btn {
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+    .btn:hover {
+        background-color: #0056b3;
+    }
+
+table {
+    width: 100%;
+}
+
+.hide {
+    display: none;
+}
+
+/* Hiệu ứng khi hover */
+.datatable-table tr:hover {
+    background-color: #76b900; /* Tô sáng hàng khi hover */
+    cursor: pointer; /* Đổi con trỏ chuột */
+}
+
+.datatable-table > tbody > tr:hover {
+    background-color: #76b900; /* Nền khi hover */
+}

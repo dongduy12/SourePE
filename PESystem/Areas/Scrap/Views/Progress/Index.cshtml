@@ -1,0 +1,204 @@
+﻿﻿@{
+    ViewData["Title"] = "Scrap Area";
+}
+@{
+    Layout = "~/Areas/Scrap/views/Shared/Layout_scrap.cshtml";
+}
+
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<div class="row mb-3">
+    <!-- Cột chọn loại chức năng -->
+    <div class="col-md-3">
+        <form id="search-form" class="form-inline">
+            <select id="search-options" class="form-select">
+                <option selected disabled>SELECT FUNCTION</option>
+                <option value="TASK_STOCK_STATUS">Trạng thái tìm bản</option>
+                <option value="UPDATE_STATUS">UPDATE STATUS</option>
+                <option value="SEARCH_STATUS">Tìm kiếm</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- function area-->
+    <div class="col-md-9">
+
+        <!-- Form Trạng thái tìm bản -->
+        <form id="task-stock-status-form" method="post" class="hidden" data-search-type="TASK_STOCK_STATUS_FORM">
+            <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
+                <div class="col-md-2">
+                    <button id="task-stock-status-btn" class="btn btn-ne" type="button">Load List</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Form UPDATE STATUS -->
+        <form id="update-status-form" method="post" class="hidden" data-search-type="UPDATE_STATUS">
+            <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
+                <div class="col-md-4">
+                    <textarea name="serialNumbers" id="sn-status-update" class="form-control" rows="8" placeholder="Nhập Serial Number (mỗi dòng 1 SN)"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-2">
+                        <label for="status-input" class="form-label">Update trạng thái</label>
+                        <select id="status-options" class="form-select">
+                            <option selected disabled>SELECT STATUS</option>
+                            <option value="1">Đã tìm thấy bản</option>
+                            <option value="2">Đã chuyển kho phế</option>
+                        </select>
+                    </div>
+                    
+
+                    <div>
+                        @{
+                            var allowedAreas = HttpContextAccessor.HttpContext.User.Claims
+                            .FirstOrDefault(c => c.Type == "AllowedAreas")?.Value.Split(',');
+
+                            var Scrap = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "Scrap");
+                            
+                        }
+                        @if (Scrap)
+                        {
+                            <button id="update-status-btn" class="md-2 btn btn-ne" type="button">Update</button>
+                        }else
+                        {
+                            <button id="update-status-btn" class="md-2 btn btn-ne hidden" type="button">Update</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Form SEARCH STATUS -->
+        <form id="search-status-form" method="post" class="hidden" data-search-type="SEARCH_STATUS">
+            <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
+                <div class="col-md-4">
+                    <textarea name="SN/TASK" id="search-status-update" class="form-control" rows="8" placeholder="Nhập SN/Internal Task"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-2">
+                        <label for="SNTASK-input" class="form-label">Tìm kiếm trạng thái</label>
+                        <select id="search-status-options" class="form-select">
+                            <option selected disabled>SELECT STATUS</option>
+                            <option value="1">Tìm kiếm theo SN</option>
+                            <option value="2">Tìm kiếm theo Internal Task</option>
+                            <option value="3">Tìm kiếm theo Task NV</option>
+                        </select>
+                    </div>
+                    <button id="search-status-btn" class="md-2 btn btn-ne" type="button">Search</button>
+                    <button id="load-status-btn" class="md-2 btn btn-ne" type="button">Load List</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!--khu vực hiển thị chi tiết-->
+<div class="row mb-3">
+    <!--hiển thị của chức năng create task-->
+    <div id="task-stock-status-result" class="hidden"></div>
+    <!--hiển thị của chức năng update data-->
+    <div id="update-status-result" class="hidden"></div>
+    <!--hiển thị của chức năng search data-->
+    <div id="search-status-result" class="hidden"></div>
+</div>
+
+@section Scripts {
+    <style>
+        .hidden {
+            display: none !important;
+        }
+
+        /* Container cho bảng để hỗ trợ cuộn ngang */
+        .table-container {
+            max-width: 100%;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px; /* Tăng kích thước chữ để dễ đọc */
+            table-layout: auto; /* Để các cột tự điều chỉnh theo nội dung */
+        }
+
+        th, td {
+            padding: 10px 12px; /* Tăng padding để thoáng hơn */
+            text-align: left;
+            border: 1px solid #ddd; /* Viền rõ ràng hơn */
+            white-space: nowrap; /* Ngăn nội dung xuống dòng */
+        }
+
+        th {
+            background-color: #28a715; /* Màu xanh lá cây giống nút "Create task" (Bootstrap success) */
+            color: white; /* Chữ trắng để dễ đọc */
+            font-weight: bold;
+            position: sticky; /* Giữ tiêu đề cố định khi cuộn */
+            top: 0;
+            z-index: 1;
+        }
+
+        td {
+            background-color: rgba(255, 255, 255, 0.9); /* Nền trắng với độ mờ nhẹ */
+        }
+
+            /* Căn chỉnh cụ thể cho một số cột */
+            th:nth-child(1), td:nth-child(1) { /* Cột checkbox */
+                width: 40px; /* Chiều rộng cố định cho cột checkbox */
+                text-align: center;
+            }
+
+            th:nth-child(9), td:nth-child(9), /* Cột Cost */
+            th:nth-child(13), td:nth-child(13), /* Cột Create Time */
+            th:nth-child(14), td:nth-child(14) { /* Cột Apply Time */
+                text-align: center; /* Căn giữa */
+            }
+
+            /* Cột có nội dung dài (Description, Remark) */
+            th:nth-child(1), td:nth-child(1), /* Cột internal task */
+            th:nth-child(2), td:nth-child(2), /* Cột internal task */
+            th:nth-child(3), td:nth-child(3), /* Cột Description */
+            th:nth-child(10), td:nth-child(10) { /* Cột Remark */
+                /*white-space: normal; * Cho phép xuống dòng */
+                max-width: 300px; /* Giới hạn chiều rộng tối đa */
+                word-wrap: break-word; /* Đảm bảo xuống dòng đúng */
+            }
+
+        /* Hiệu ứng hover để dễ theo dõi dòng */
+        tr:hover td {
+            background-color: rgba(200, 200, 200, 0.2); /* Nền xám nhạt khi hover */
+        }
+
+        /* Định dạng checkbox */
+        .checkbox-column {
+            width: 40px; /* Đảm bảo cột checkbox không quá hẹp */
+            text-align: center;
+        }
+
+        /* Đảm bảo bảng không vượt quá container */
+        table {
+            min-width: 1200px; /* Đảm bảo bảng có chiều rộng tối thiểu để không bị co lại quá mức */
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+            .pagination button {
+                margin: 0 5px;
+                padding: 5px 10px;
+                font-size: 14px;
+            }
+
+            .pagination span {
+                font-size: 14px;
+                color: #333;
+            }
+    </style>
+    <script src="~/assets/areas/scrap/js/progress.js?v=@DateTime.Now.Ticks"></script>
+}

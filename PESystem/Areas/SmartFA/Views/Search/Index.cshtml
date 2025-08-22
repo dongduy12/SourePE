@@ -1,0 +1,89 @@
+﻿@{
+    ViewData["Title"] = "SmartFA Area";
+}
+@{
+    Layout = "~/Areas/SmartFA/Views/Shared/_Layout_SmartFA.cshtml";
+}
+
+<section>
+    <div class="search-box d-flex align-items-start bg-white shadow p-4 rounded">
+        <div class="me-3 flex-fill">
+            <label for="typeSearch" class="form-label">Kiểu</label>
+            <select id="typeSearch" class="form-select" aria-label="trang thai">
+                <option selected value="current">Hiện tại</option>
+                <option value="history">Lịch sử</option>
+            </select>
+        </div>
+        <div class="me-3 flex-fill">
+            <label for="serialNumbers" class="form-label">SerialNumber</label>
+            <textarea id="sn-input" class="form-control" rows="1" placeholder="SN001, SN002"></textarea>
+            <div id="serialNumbersError" class="error-text"></div>
+        </div>
+        <div class="me-2 flex-fill">
+            <label for="status" class="form-label">Status</label>
+            <select id="status" class="form-select" aria-label="trang thai">
+                <option value="" selected>Chọn...</option>
+            </select>
+        </div>
+        <div class="me-3 flex-fill">
+            <label for="testCode" class="form-label">TestCode</label>
+            <input type="text" id="testCode" class="form-control" placeholder="E001" />
+        </div>
+        <div class="me-3 flex-fill">
+            <label for="data1" class="form-label">Data1</label>
+            <input type="text" id="data1" class="form-control" placeholder="Mô tả lỗi" />
+        </div>
+        <div class="me-3 flex-fill">
+            <label for="modelName" class="form-label">ModelName</label>
+            <select id="modelName" class="form-select">
+                <option value="" selected>Chọn...</option>
+            </select>
+        </div>
+        <div class="align-self-end">
+            <button class="btn btn-ne mt-4" type="submit" onclick="submitSearch()">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+    <div id="results-info" class="mt-2" style="margin-bottom: 10px; font-size: 16px; color:#9999;">
+        <!-- Số lượng kết quả tìm kiếm sẽ được hiển thị ở đây -->
+    </div>
+    <div id="search-results" style="display: none;">
+        <div class="datatable-wrapper">
+            <div class="datatable-container">
+                <div id="results-info"></div> <!-- Thông tin số lượng kết quả -->
+                <img id="exportExcelBtn" src="~/assets/img/excel.png" alt="Excel Icon" class="flex-fill" style="width:48px; height:48px;">
+                <table class="datatable-table table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>SerialNumber</th>
+                            <th>ModelName</th>
+                            <th>TestGroup</th>
+                            <th>TestCode</th>
+                            <th>Data1</th>
+                            <th>PreviousStatus</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>ConfirmPerson</th>
+                            <th>ConfirmTime</th>
+                            <th>Location</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body">
+                        <!-- Dữ liệu kết quả sẽ được thêm vào đây -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="pagination" class="d-flex justify-content-between mt-3">
+            <button id="prev-page-btn" class="btn btn-ne" style="display: none;">Trang trước</button>
+            <span id="pagination-info">Trang 1/1</span>
+            <button id="next-page-btn" class="btn btn-ne" style="display: none;">Trang tiếp theo</button>
+        </div>
+    </div>
+</section>
+@section Scripts {
+    <script src="~/assets/areas/smartfa/js/searchfa.js?v=@DateTime.Now.Ticks"></script>
+}

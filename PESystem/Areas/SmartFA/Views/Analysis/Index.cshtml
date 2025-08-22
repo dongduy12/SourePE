@@ -1,0 +1,664 @@
+﻿@{
+    ViewData["Title"] = "SmartFA Area";
+}
+@{
+    Layout = "~/Areas/SmartFA/Views/Shared/_Layout_SmartFA.cshtml";
+}
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<section>
+    <div class="row">
+        <!-- Ô nhập -->
+        <div class="col-md-6">
+            <form id="sn-form">
+                <div class="input-group d-flex align-items-start gap-2">
+                    <textarea id="serialNumberList" class="form-control flex-grow-1" rows="3" placeholder="Input SERIAL NUMBER..." required></textarea>
+                    <button type="submit" id="searchButton" class="btn btn-ne">SEARCH</button>
+                    <button type="button" id="refreshButton" class="btn btn-ne">REFRESH</button>
+                    <button type="button" id="updateReceivingButton" class="btn btn-ne">UPDATE LOCATION</button>
+                </div>
+            </form>
+        </div>
+        <!-- Upload File -->
+        <div class="col-auto ms-auto text-end">
+            <button type="button" id="addGuideButton" class="btn btn-ne w-100">Add Guide</button>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="btn-action-group btn-group mt-1">
+            @{
+                var allowedAreas = HttpContextAccessor.HttpContext.User.Claims
+                .FirstOrDefault(c => c.Type == "AllowedAreas")?.Value.Split(',');
+
+                var canShowFA = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "FA");
+                var canShowRetest = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "RETEST");
+                var canShowThayLieu = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "THAY LIỆU");
+                var canShowVI = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "VI-RE");
+                var canShowCheckList = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "CHECK_LIST");
+            }
+            @if (canShowFA)
+            {
+                <button class="btn btn-outline-dark btn-fa">FA</button>
+            }
+            @if (canShowRetest)
+            {
+                <button class="btn btn-outline-dark btn-retest">RETEST</button>
+            }
+            @if (canShowThayLieu)
+            {
+                <button class="btn btn-outline-dark btn-thay-lieu">THAY LIỆU</button>
+            }
+            @if (canShowVI)
+            {
+                <button class="btn btn-outline-dark btn-vi">VI-RE</button>
+            }
+            @if (canShowCheckList)
+            {
+                <button class="btn btn-outline-dark btn-check-list">CHECK LIST</button>
+            }
+            <button id="btn-handover" class="btn btn-outline-danger">Giao</button>
+            <button id="btn-receive" class="btn btn-outline-success">Nhận</button>
+        </div>
+    </div>
+    <div id="sn-table-wrapper" class="mt-2 datatable-wrapper d-none position-relative">
+        <table id="sn-table" class="table table-bordered datatable-table">
+            <thead>
+                <tr>
+                    <th>SERIAL_NUMBER</th>
+                    <th>PRODUCT_LINE</th>
+                    <th>MODEL_NAME</th>
+                    <th>WIP</th>
+                    <th>TEST_GROUP</th>
+                    <th>TEST_CODE</th>
+                    <th>ERROR_DESC</th>
+                    <th>PRE_STATUS</th>
+                    <th>STATUS</th>
+                    <th>DATE</th>
+                    <th>ID_NV</th>
+                    <th>CHECK_POINT</th>
+                    <th>HANDOVER</th>
+                    <th>VỊ_TRÍ</th>
+                    <th>HƯỚNG_DẪN</th>
+                    <th>SỬA_CHỮA</th>
+                    <th>LỊCH_SỬ</th>
+                    <th>KHÁC</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+                <!-- Các hàng sẽ được thêm ở đây -->
+            </tbody>
+        </table>
+        <img id="exportSnTableExcelBtn" src="~/assets/img/excel.png" alt="Excel Icon" style="top:-50px!important; width:48px; height:48px; position:absolute; top:0; right:0; cursor:pointer;" />
+    </div>
+
+    <div class="chart-container position-relative" style="width: 100%; margin: auto; padding: 5px;">
+        <div id="locationChart" style="max-height: 400px;"></div>
+        <img id="exportAllLocationExcelBtn" src="~/assets/img/excel.png" alt="Excel Icon" style="width:48px; height:48px; position:absolute; top:0; left:0; cursor:pointer;" />
+    </div>
+    <div class="row chart-container" style="width: 100%; margin: auto; padding: 5px;">
+        <div class="col-md-6">
+            <div id="handoverStatusChart" style="max-height: 400px;"></div>
+        </div>
+        <div class="col-md-6">
+            <div id="onlineStatusChart" style="max-height: 400px;"></div>
+        </div>
+    </div>
+    <div class="row chart-container" style="width: 100%; margin: auto; padding: 5px;">
+        <div class="col-md-6">
+            <div id="agingChart" style="max-height: 400px;"></div>
+        </div>
+    </div>
+
+    <!-- Modal hiển thị SerialNumber theo Aging -->
+    <div class="modal fade" id="agingDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-lg-custom">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Danh sách SerialNumber theo Aging</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered datatable-table table-striped" id="agingDetailTable">
+                        <thead>
+                            <tr>
+                                <th>SerialNumber</th>
+                                <th>TestCode</th>
+                                <th>ErrorDesc</th>
+                                <th>MONumber</th>
+                                <th>ModelName</th>
+                                <th>Aging(Days)</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ne">
+                        <img id="exportAgingExcelBtn" src="~/assets/img/excel.png" alt="Excel Icon" class="flex-fill" style="width:24px; height:24px;">
+                    </button>
+                    <button type="button" class="btn btn-ne" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal hiển thị SerialNumber theo Location -->
+    <div class="modal fade" id="locationDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-lg-custom">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Danh sách SerialNumber</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered datatable-table table-striped" id="locationDetailTable">
+                        <thead>
+                            <tr>
+                                <th>SerialNumber</th>
+                                <th>TestCode</th>
+                                <th>ErrorDesc</th>
+                                <th>MO Number</th>
+                                <th>ModelName</th>
+                                <th>Aging(Days)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ne">
+                        <img id="exportLocationExcelBtn" src="~/assets/img/excel.png" alt="Excel Icon" class="flex-fill" style="width:24px; height:24px;">
+                    </button>
+                    <button type="button" class="btn btn-ne" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-lg-custom">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusModalLabel">Danh Sách Serial Numbers</h5>
+                    <button type="button" class="btn-ne btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table id="modal-sn-table" class="table table-bordered datatable-table table-striped">
+                        <thead>
+                            <tr>
+                                <th>SERIAL_NUMBER</th>
+                                <th>MODEL_NAME</th>
+                                <th>TEST_GROUP</th>
+                                <th>TEST_CODE</th>
+                                <th>ERROR_DESC</th>
+                                <th>PRE_STATUS</th>
+                                <th>STATUS</th>
+                                <th>OWNER</th>
+                                <th>TIME</th>
+                                <th>HANDOVER</th>
+                                <th>LOCATION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dữ liệu sẽ được chèn tại đây -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ne">
+                        <img id="exportExcelBtn" src="~/assets/img/excel.png" alt="Excel Icon" class="flex-fill" style="width:24px; height:24px;">
+                    </button>
+                    <button type="button" class="btn btn-ne" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Thêm Guide -->
+    <div class="modal fade" id="guideModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Thêm/Sửa hướng dẫn sửa chữa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label>Chọn Model:</label>
+                    <select id="productLineDropdown" class="form-select"></select>
+                    <input type="text" id="testCodeInput" class="form-control" placeholder="Nhập Test Code">
+                    <textarea name="checkPointInput"
+                              id="checkPointInput"
+                              rows="3"
+                              class="form-control w-100"
+                              style="min-width: 100%; max-width: 100%;"
+                              placeholder="Nhập Check Point"></textarea>
+
+                    <button id="saveCheckPointButton" class="btn btn-ne mt-2">XÁC NHẬN</button>
+
+                    <hr>
+
+                    <label>Upload File Excel (.xlsx):</label>
+                    <input type="file" id="guideFileInput" class="form-control" accept=".xlsx">
+                    <div>
+                        <button id="uploadExcelButton" class="btn btn-ne mt-2">UPLOAD</button>
+                        <button id="templateButton" class="btn btn-ne mt-2">TEMPLATE</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal FA -->
+    <div id="type-modal" class="modal fade" tabindex="-1" aria-labelledby="typeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="typeModalLabel">Chọn giá trị phân tích</h5>
+                    <button type="button" class="btn-ne btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <input type="hidden" id="analysisPerson" value="@User.Identity.Name" />
+                <div class="modal-body">
+                    <form id="type-form">
+                        <div class="form-group">
+                            <select id="type-select" class="form-control">
+                                <option value="">-- Chọn trạng thái --</option>
+                                <option value="CHECK_LIST">CHECK LIST</option>
+                                <option value="RETEST">RETEST</option>
+                                <option value="THAY LIỆU">THAY LIỆU</option>
+                                <option value="VI-RE">VI-RE</option>
+                                <option value="KHÓ SỬA">KHÓ SỬA</option>
+                            </select>
+                        </div>
+                        <div id="additional-notes-container" style="display: none; margin-bottom: 10px;">
+                            <input type="text" id="additional-notes-input" class="form-control" placeholder="Nhập....">
+                        </div>
+                        <button type="submit" class="btn btn-ne">XÁC NHẬN</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal huong dan-->
+    <div class="modal fade" id="repairDetailModal" tabindex="-1" aria-labelledby="repairDetailLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="repairDetailLabel">Tất cả bản lỗi cần xác định lỗi thật --> ngoại quan kỹ càng --> đo đạc không bất thường về trở kháng thì làm theo hướng dẫn khách hàng</h5>
+                    <button type="button" class="btn-ne btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>SerialNumber:</strong> <span id="modal-sn"></span></p>
+                    <p><strong>Model:</strong> <span id="modal-model"></span></p>
+                    <p><strong>Product Line:</strong> <span id="modal-product-line"></span></p>
+                    <p><strong>CheckPoints:</strong></p>
+                    <ul id="modal-checkpoints"></ul>
+                    <p id="modal-repair-detail"></p>
+                    <div class="product-line-pdf">
+                        <iframe id="modal-product-line-pdf" src="" style="width: 100%; height: 500px; border: none;"></iframe>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ne" data-bs-dismiss="modal">ĐÓNG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal hiển thị lịch sử sửa chữa -->
+    <div id="repairHistoryModal" class="modal fade" tabindex="-1" aria-labelledby="repairHistoryLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Lịch sử sửa chữa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body table-responsive">
+                    <table id="repair-history-table" class="table-bordered table-striped datatable-table dataTable no-footer">
+                        <thead>
+                            <tr>
+                                <th>SerialNumber</th>
+                                <th>PreStatus</th>
+                                <th>Status</th>
+                                <th>Thời gian</th>
+                                <th>Người sửa</th>
+                                <th>Chi tiết</th>
+                                <th>Loại</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ne" data-bs-dismiss="modal">ĐÓNG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal thêm lịch sử sửa chữa-->
+    <div id="save-repair-modal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Lưu lịch sử sửa chữa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>SerialNumber:</strong> <span id="save-serial-number"></span></p>
+                    <div class="form-group">
+                        <label for="save-notes">Chi tiết</label>
+                        <textarea id="save-notes" class="form-control" rows="3" placeholder="Cần nhập chi tiết vị trí đã thay liệu..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ĐÓNG</button>
+                    <button type="button" id="confirm-save-repair" class="btn btn-ne">XÁC NHẬN</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal thay lieu-->
+    <div id="modal-thaylieu" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cập nhật trạng thái THAY LIỆU</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="status-form">
+                        <div class="form-group">
+                            <label for="select-thaylieu-status">Trạng thái tiếp theo</label>
+                            <select id="select-thaylieu-status" class="form-control" required>
+                                <option value="" disabled selected>Chọn...</option>
+                                <option value="FA">FA</option>
+                                <option value="RETEST">RETEST</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="notes-thaylieu">Vị trí đã thay</label>
+                            <textarea id="notes-thaylieu" class="form-control" rows="3" placeholder="Cần nhập vị trí đã thay..."></textarea>
+                        </div>
+                    </form>
+                    <!--<p><strong>SerialNumber:</strong> <span id="modal-sn-thay-lieu"></span></p>-->
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ĐÓNG</button>
+                    <button type="button" id="btn-thaylieu-status-update" class="btn btn-ne">XÁC NHẬN</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal VI-->
+    <div class="modal fade" id="modal-vi" tabindex="-1" role="dialog" aria-labelledby="statusSelectModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusSelectModalLabel">Cập nhật trạng thái VI</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="status-form">
+                        <div class="form-group">
+                            <label for="select-vi-status">Trạng thái tiếp theo</label>
+                            <select id="select-vi-status" class="form-control" required>
+                                <option value="" disabled selected>Chọn...</option>
+                                <option value="CHỜ TRẢ">Chờ trả SI</option>
+                                <option value="FA">FA</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="notes-vi">Ghi chú</label>
+                            <textarea id="notes-vi" class="form-control" rows="3" placeholder="Nhập kết quả VI..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ĐÓNG</button>
+                    <button type="button" id="btn-vi-status-update" class="btn btn-ne">XÁC NHẬN</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal Check List-->
+    <div class="modal fade" id="modal-check-list" tabindex="-1" role="dialog" aria-labelledby="checkListSelectModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="checkListSelectModalLabel">Cập nhật trạng thái Check list</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="status-form">
+                        <div class="form-group">
+                            <label for="status-select-check-list">Trạng thái tiếp theo</label>
+                            <select id="status-select-check-list" class="form-control" required>
+                                <option value="" disabled selected>Chọn...</option>
+                                <option value="FA">FA</option>
+                                <option value="THAY LIỆU">THAY LIỆU</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="notes-check-list">Ghi chú</label>
+                            <textarea id="notes-check-list" class="form-control" rows="3" placeholder="Nhập trạng thái check list..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ĐÓNG</button>
+                    <button type="button" id="btn-check-list-status-update" class="btn btn-ne">XÁC NHẬN</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal RETEST-->
+    <div class="modal fade" id="modal-retest" tabindex="-1" role="dialog" aria-labelledby="statusSelectModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusSelectModalLabel">Cập nhật trạng thái RETEST</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="status-form">
+                        <div class="form-group">
+                            <label for="select-retest-result">Kết quả test</label>
+                            <select id="select-retest-result" class="form-control" required>
+                                <option value="" disabled selected>Chọn...</option>
+                                <option value="PASS">PASS</option>
+                                <option value="FAIL">FAIL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="notes-retest">Ghi chú</label>
+                            <textarea id="notes-retest" class="form-control" rows="3" placeholder="Nhập chi tiết mã lỗi...(VD:4-1137-8357)"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="select-retest-status">Trạng thái tiếp theo</label>
+                            <select id="select-retest-status" class="form-control" required>
+                                <option value="" disabled selected>Chọn...</option>
+                                <option value="FA">FA</option>
+                                <option value="VI-RE">VI-RE</option>
+                            </select>
+                        </div>
+
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" id="btn-retest-status-update" class="btn btn-ne">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <br>
+        <label>THÔNG TIN NGƯỜI NHẬN SAU KHI RETEST/THAY LIỆU</label>
+        <br>
+        <button id="btn-fetch-tester" class="btn btn-ne btn-infor">TÌM KIẾM</button>
+    </div>
+
+    <!--MODAL HIỂN THỊ THÔNG TIN NGƯỜI NHẬN BẢN SAU KHI RETEST-->
+    <div id="modal-tester-info" class="modal fade" tabindex="-1" aria-labelledby="modalTesterLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTesterLabel">Thông Tin Nguời Nhận Sau Retest/Thay Liệu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table id="tester-info-table" class="table-bordered table-striped datatable-table dataTable no-footer" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>SerialNumber</th>
+                                <th>Mã Thẻ</th>
+                                <th>Người nhận</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal cập nhật vị trí cho danh sách SN -->
+    <div class="modal fade" id="updateReceivingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Location</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea id="updateReceivingSerials" class="form-control mb-2" rows="3" placeholder="List SERIAL_NUMBER..."></textarea>
+                    <input type="text" id="updateReceivingLocation" class="form-control" placeholder="Vị trí (Location)">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" id="confirmUpdateReceiving" class="btn btn-ne">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal nhập vị trí khi nhận bản -->
+    <div class="modal fade" id="locationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nhập vị trí</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="locationInput" class="form-control" placeholder="Vị trí (Location)">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" id="confirmLocation" class="btn btn-ne">Xác nhận</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="fa fa-arrow-up"></i></a>
+</section>
+
+@section Scripts {
+    <link href="~/lib/bootstrap@5.min.css" rel="stylesheet" />
+    <script src="~/assets/vendor/apexcharts/apexcharts.min.js"></script>
+    <script src="~/assets/areas/smartfa/js/analysis.js?v=@DateTime.Now.Ticks"></script>
+    <style>
+        .modal-lg-custom {
+            max-width: 90%;
+        }
+
+        .modal-body {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .badge-status {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+        }
+
+        .table thead th {
+            white-space: nowrap;
+        }
+
+        .btn-action-group .btn {
+            min-width: 90px;
+        }
+
+        /* Đảm bảo cột và tiêu đề cố định hiển thị rõ ràng */
+        .table.dataTable thead tr > .dtfc-fixed-left {
+            background-color: #0c0c0c !important; /* Màu nền cho cột cố định */
+        }
+        /* Thêm hiệu ứng hover cho hàng */
+        .datatable-table tbody tr:hover td,
+        .datatable-table tbody tr:hover th {
+            background-color: #76b900 !important;
+            /*transition: background-color 0.2s ease;*/
+        }
+
+        /* (Tùy chọn) Giữ màu đặc biệt cho hàng auto-block khi hover */
+        .datatable-table tbody tr.auto-block:hover td,
+        .datatable-table tbody tr.auto-block:hover th {
+            background-color: #76b900 !important;
+            /*transition: background-color 0.2s ease;*/
+        }
+
+        .back-to-top {
+            position: fixed;
+            visibility: hidden;
+            opacity: 0;
+            right: 15px;
+            bottom: 15px;
+            z-index: 99999;
+            background: #4154f1;
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            transition: all 0.4s;
+        }
+
+            .back-to-top i {
+                font-size: 24px;
+                color: #fff;
+                line-height: 0;
+            }
+
+            .back-to-top:hover {
+                background: #6776f4;
+                color: #fff;
+            }
+
+            .back-to-top.active {
+                visibility: visible;
+                opacity: 1;
+            }
+
+    </style>
+}

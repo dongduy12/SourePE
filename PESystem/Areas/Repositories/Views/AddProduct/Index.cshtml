@@ -1,0 +1,82 @@
+﻿@{
+    ViewData["Title"] = "Repository";
+}
+@{
+    Layout = "~/Areas/Repositories/Views/Shared/_Layout_Repo.cshtml";
+}
+
+<div id="option-list" class="mt-3 col-md-12">
+    <div class="row">
+        <div class="col-md-2">
+            <input name="location" class="location-field form-control" placeholder="Vị trí khay" />
+        </div>
+        <div class="col-md-2">
+            <input id="shelf" name="shelf" class="shelf-field form-control" readonly placeholder="Kệ" />
+        </div>
+        <div class="col-md-2">
+            <input id="column" name="column" class="column-select form-control" readonly placeholder="Cột" />
+        </div>
+        <div class="col-md-2">
+            <input id="level" name="level" class="level-select form-control" readonly placeholder="Tầng" />
+        </div>
+        <div class="col-md-2">
+            <input id="tray" name="tray" class="tray-select form-control" readonly placeholder="Khay" />
+        </div>
+
+    </div>
+
+    <div class="overflow-auto mt-3">
+        <div class="card-body">
+            <div class="mt-2">
+                <!-- Thẻ ẩn chứa tên người dùng -->
+                <input type="hidden" id="entryPerson" value="@User.Identity.Name" />
+                <small id="serial-count" class="form-text text-muted">Tổng số serial đã nhập: 0/...</small>
+                <small id="serial-limit-warning" class="text-muted form-text text-danger" style="display: none;">Khay đã đầy! Vui lòng nhập khay khác!!!</small>
+                <small id="duplicate-warning" class="text-muted form-text text-danger" style="display: none;">Có serial bị trùng lặp!</small>
+            </div>
+            <div class="row">
+                <table class="table table-bordered mt-2" style="width:75%">
+                    <thead>
+                        <tr>
+                            <th class="fixed-column col-md-4">SERIA_NUMBER</th>
+                            <th class="col-md-3">MODEL_NAME</th>
+                            <th class="col-md-3">PRODUCT_LINE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="serial-number-table">
+                        <tr>
+                            <td class="col-md-4">
+                                <div>
+                                    <textarea name="serialNumber" id="sn-input" class="serial-number-input form-control" rows="8" placeholder="Serial Number List"></textarea>
+                                </div>
+                            </td>
+                            <td class="col-md-3"><textarea name="modelName" class="model-name-field form-control" rows="8" readonly></textarea></td>
+                            <td class="col-md-3"><textarea name="productLine" class="product-line-field form-control" rows="8" readonly></textarea></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table id="color-table" class="table table-bordered mt-2" style="width:25%">
+                    <thead>
+                        <tr>
+                            <th>VỊ_TRÍ</th>
+                            <th>SERIAL_NUMBER</th>
+                        </tr>
+                    </thead>
+                    <tbody id="serial-number-in-tray">
+                        <!-- Dữ liệu sẽ được thêm vào đây -->
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+    <div class="fixed-column d-flex col-md-3">
+        <button id="entry-btn" class="btn btn-ne button-fixed-width flex-fill">NHẬP KHO</button>
+    </div>
+</div>
+<a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+
+@section Scripts {
+    <script src="~/assets/areas/repositories/js/import.js?v=@DateTime.Now.Ticks"></script>
+}

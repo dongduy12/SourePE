@@ -1,0 +1,40 @@
+﻿.activity-item {
+    background: #f8f9fa; /* Nền sáng */
+    border-radius: 8px; /* Bo góc */
+    transition: transform 0.3s, background 0.3s; /* Hiệu ứng khi hover */
+    margin-right: 15px; /* Co ngắn card */
+    padding: 10px; /* Giảm padding */
+    max-width: 300px; /* Giới hạn chiều rộng */
+}
+
+    .activity-item:hover {
+        transform: scale(1.05);
+        background-color: #f1f1f1; /* Đổi màu nền khi hover */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Hiệu ứng bóng */
+    }
+
+.activite-label {
+    font-size: 1.5rem; /* Giảm font chữ */
+    font-weight: bold;
+    color: #495057;
+    width: 50px; /* Cố định chiều rộng */
+}
+
+.activity-badge {
+    font-size: 1.5rem; /* Kích thước icon */
+}
+
+.activity-content {
+    font-size: 0.9rem;
+    color: #212529;
+    display: flex; /* Căn chỉnh nội dung theo hàng */
+    justify-content: space-between; /* Cách đều hai đầu */
+    align-items: center;
+    width: 100%; /* Đảm bảo chiếm toàn bộ không gian */
+}
+
+.badge {
+    font-size: 1rem;
+    padding: 8px 12px; /* Giảm kích thước badge */
+    border-radius: 8px; /* Bo góc badge */
+}

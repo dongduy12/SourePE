@@ -1,0 +1,25 @@
+[
+  {
+    "outputFileName": "wwwroot/js/site.min.js",
+    "inputFiles": [
+      "wwwroot/js/site.js"
+    ],
+    "minify": {
+      "enabled": true,
+      "renameLocals": true
+    }
+  },
+  {
+    "outputFileName": "wwwroot/css/site.min.css",
+    "inputFiles": [
+      "wwwroot/css/site.css",
+      "wwwroot/lib/datatable/style.css"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/assets/Areas/Repositories/js/search.min.js",
+    "inputFiles": [
+      "wwwroot/assets/Areas/Repositories/js/search.js"
+    ]
+  }
+]

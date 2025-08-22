@@ -1,0 +1,118 @@
+﻿@{
+    ViewData["Title"] = "Material Area";
+    Layout = "~/Areas/MaterialSystem/views/Shared/Layout_material.cshtml";
+}
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<!-- Thẻ ẩn chứa tên người dùng -->
+<input type="hidden" id="entryPerson" value="@User.Identity.Name" />
+
+<div id="option-list" class="col-md-12">
+    <div class="action-buttons fixed-column d-flex mb-2 mt-2">
+        @{
+            var allowedAreas = HttpContextAccessor.HttpContext.User.Claims
+            .FirstOrDefault(c => c.Type == "AllowedAreas")?.Value.Split(',');
+            var canShowMaterial = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "Material");
+        }
+        @if (canShowMaterial)
+        {
+            <button id="return-btn" class="btn btn-ne button-fixed-width flex-fill me-2">THU LIỆU</button>
+        }
+        <button id="select-type-btn" class="btn btn-ne button-fixed-width flex-fill me-2">TYPE</button>
+        <button id="export-excel-btn" class="btn btn-ne button-fixed-width flex-fill me-2">EXCEL</button>
+    </div>
+</div>
+
+<table id="historyMaterialsTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+    <thead>
+        <tr>
+            <th><input type="checkbox" id="selectAllCheckbox" title="Chọn tất cả" /></th>
+            <th>TASK</th>
+            <th>MÃ_LIỆU</th>
+            <th>ALLPART</th>
+            <th>VENDOR</th>
+            <th>DATE_CODE</th>
+            <th>LOT_CODE</th>
+            <th>TYPE</th>
+            <th>LIỆU_OK</th>
+            <th>LIỆU_NG</th>
+            <th>TIME</th>
+            <th>OP1</th>
+            <th>TIME_2</th>
+            <th>OP2</th>
+            <th>ESD</th>
+            <th>LOCATION</th>
+            <th>REMARK</th>
+            <th>LIỆU_OK(ĐÃ THU)</th>
+            <th>LIỆU_NG(ĐÃ THU)</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+@section Scripts {
+    <style>
+        /* CSS cho tooltip tùy chỉnh */
+        .custom-tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            white-space: normal;
+            max-width: 300px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        /* Hiển thị tooltip khi di chuột vào */
+        td:hover .custom-tooltip {
+            display: block;
+        }
+        /* Giới hạn độ rộng cột */
+        #historyMaterialsTable th, #historyMaterialsTable td {
+            white-space: nowrap; /* Ngăn xuống dòng */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Hiển thị dấu "..." nếu nội dung quá dài */
+            max-width: 80px !important; /* Giới hạn độ rộng cột */
+        }
+
+            #historyMaterialsTable th:nth-child(1),
+            #historyMaterialsTable td:nth-child(1) {
+                width: 20px !important;
+            }
+            /* Cố định thanh tìm kiếm và phân trang khi cuộn ngang */
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_paginate {
+            position: sticky;
+            top: 0;
+            background-color: #fff;
+            z-index: 1;
+            border-radius: 8px;
+            padding: 5px 0;
+        }
+
+        /* Đảm bảo thanh tìm kiếm và phân trang không bị che khuất */
+        .dataTables_wrapper {
+            overflow-x: auto;
+        }
+
+        /* Điều chỉnh chiều rộng tối thiểu cho wrapper */
+        .dataTables_wrapper .dataTables_scroll {
+            min-width: 100%;
+        }
+
+        /* Thêm hiệu ứng hover cho hàng */
+        .datatable-table tbody tr:hover td,
+        .datatable-table tbody tr:hover th {
+            background-color: #76b900 !important;
+            /*transition: background-color 0.2s ease;*/
+        }
+    </style>
+    <script src="~/assets/areas/material/js/return_material.js?v=@DateTime.Now.Ticks"></script>
+}
+

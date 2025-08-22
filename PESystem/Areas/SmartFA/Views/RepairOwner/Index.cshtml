@@ -1,0 +1,35 @@
+@{
+    ViewData["Title"] = "Repair Owner Search";
+    Layout = "~/Areas/SmartFA/Views/Shared/_Layout_SmartFA.cshtml";
+}
+
+<section>
+    <div class="mb-3">
+        <label for="sn-input" class="form-label">Serial Numbers</label>
+        <textarea id="sn-input" class="form-control" rows="5" placeholder="Nhập SERIAL NUMBER..."></textarea>
+    </div>
+    <button id="searchBtn" class="btn btn-ne">Tìm kiếm</button>
+    <img id="exportExcelBtn" src="~/assets/img/excel.png" alt="Excel" class="ms-2" style="width:40px;height:40px;cursor:pointer;" />
+    <div class="table-responsive mt-3">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>SerialNumber</th>
+                    <th>ModelName</th>
+                    <th>ReasonCode</th>
+                    <th>TestCode</th>
+                    <th>ErrorDesc</th>
+                    <th>Repairer</th>
+                    <th>TestGroup</th>
+                    <th>ErrorItemCode</th>
+                    <th>RepairTime</th>
+                </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+        </table>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/assets/areas/smartfa/js/repairOwner.js?v=@DateTime.Now.Ticks"></script>
+}

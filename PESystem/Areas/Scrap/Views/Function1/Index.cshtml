@@ -1,0 +1,184 @@
+﻿﻿﻿@{
+    ViewData["Title"] = "Scrap Area";
+}
+@{
+    Layout = "~/Areas/Scrap/views/Shared/Layout_scrap.cshtml";
+}
+<div class="row mb-3">
+    <!-- Cột chọn loại chức năng -->
+    <div class="col-md-3">
+        <form id="search-form" class="form-inline">
+            <select id="search-options" class="form-select">
+                <option selected disabled>SELECT FUNCTION</option>
+                <option value="INPUT_SN_1">INPUT SN</option>
+                <option value="SN_WAIT_SPE_APPROVE">SN WAIT SPE APPROVE</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- function area-->
+    <div class="col-md-9">
+        <!-- Form input SN -->
+        <form id="input-sn-1-form" method="post" class="hidden" data-search-type="INPUT_SN">
+            <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
+                <div class="col-md-3">
+                    <textarea name="serialNumbers" id="sn-input-1" class="form-control" rows="9" placeholder="Nhập Serial Number (mỗi dòng 1 SN)"></textarea>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-2">
+                        <label for="description-input" class="form-label">Description</label>
+                        <input type="text" id="description-input-1" name="description" class="form-control" placeholder="Nhập mô tả">
+                    </div>
+                    <div class="mb-2">
+                        <label for="tpye-bp-input" class="form-label">Type Bonepile</label>
+                        <select id="bp-options" class="form-select">
+                            <option selected disabled>SELECT TYPE BONEPILE</option>
+                            <option value="BP-10">BONEPILE 1.0</option>
+                            <option value="BP-20">BONEPILE 2.0</option>
+                        </select>
+                    </div>
+                    <button id="input-sn-btn" class="btn btn-ne" type="button">INPUT SN</button>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-2">
+                        <label for="tpye-approve-input" class="form-label">Type approve input</label>
+                        <select id="approve-options" class="form-select">
+                            <option selected disabled>SELECT TYPE APPROVE</option>
+                            <option value="2">Waiting SPE Approve Scrap</option>
+                            <option value="4">Waiting SPE Approve BGA</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Form sn wait approve result -->
+        <form id="custom-form" method="post" class="hidden" data-search-type="SN_WAIT_LIST_FORM">
+            <div class="row align-items-end">
+                <div class="col-md-2">
+                    <button id="sn-wait-list-btn" class="btn btn-ne" type="button">Download Excel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!--khu vực hiển thị chi tiết-->
+<div class="row mb-3">
+    <!--hiển thị của chức năng input sn 1-->
+    <div id="input-sn-1-result" class="hidden"></div>
+    <!--hiển thị của chức năng sn đợi SPE approve-->
+    <div id="sn-wait-approve-result" class="hidden">
+        <div class="table-container">
+            <table id="table-sn-wait-approve" class="mt-2 table table-bordered table-striped datatable-table" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>SERIAL_NUMBER</th>
+                        <th>DESCRIPTION</th>
+                        <th>CREATE_TIME</th>
+                        <th>APPLY_TASK_STATUS</th>
+                        <th>BONEPILE_TYPE</th>
+                        <th>CREATE_BY</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .hidden {
+            display: none !important;
+        }
+
+        /* Container cho bảng để hỗ trợ cuộn ngang */
+        .table-container {
+            max-width: 100%;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px; /* Tăng kích thước chữ để dễ đọc */
+            table-layout: auto; /* Để các cột tự điều chỉnh theo nội dung */
+        }
+
+        th, td {
+            padding: 10px 12px; /* Tăng padding để thoáng hơn */
+            text-align: left;
+            border: 1px solid #ddd; /* Viền rõ ràng hơn */
+            white-space: nowrap; /* Ngăn nội dung xuống dòng */
+        }
+
+        th {
+            background-color: #28a715; /* Màu xanh lá cây giống nút "Create task" (Bootstrap success) */
+            color: white; /* Chữ trắng để dễ đọc */
+            font-weight: bold;
+            position: sticky; /* Giữ tiêu đề cố định khi cuộn */
+            top: 0;
+            z-index: 1;
+        }
+
+        td {
+            background-color: rgba(255, 255, 255, 0.9); /* Nền trắng với độ mờ nhẹ */
+        }
+
+            /* Căn chỉnh cụ thể cho một số cột */
+            th:nth-child(1), td:nth-child(1) { /* Cột checkbox */
+                width: 40px; /* Chiều rộng cố định cho cột checkbox */
+                text-align: center;
+            }
+
+            th:nth-child(3), td:nth-child(3), /* Cột Create Time */
+            th:nth-child(4), td:nth-child(4) { /* Cột Apply Task Status */
+                text-align: center; /* Căn giữa */
+            }
+
+            /* Cột có nội dung dài (Description) */
+            th:nth-child(2), td:nth-child(2) { /* Cột Description */
+                white-space: normal; /* Cho phép xuống dòng */
+                max-width: 300px; /* Giới hạn chiều rộng tối đa */
+                word-wrap: break-word; /* Đảm bảo xuống dòng đúng */
+            }
+
+        /* Hiệu ứng hover để dễ theo dõi dòng */
+        tr:hover td {
+            background-color: rgba(200, 200, 200, 0.2); /* Nền xám nhạt khi hover */
+        }
+
+        /* Định dạng checkbox */
+        .checkbox-column {
+            width: 40px; /* Đảm bảo cột checkbox không quá hẹp */
+            text-align: center;
+        }
+
+        /* Đảm bảo bảng không vượt quá container */
+        table {
+            min-width: 1200px; /* Đảm bảo bảng có chiều rộng tối thiểu để không bị co lại quá mức */
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+            .pagination button {
+                margin: 0 5px;
+                padding: 5px 10px;
+                font-size: 14px;
+            }
+
+            .pagination span {
+                font-size: 14px;
+                color: #333;
+            }
+    </style>
+    <script src="~/assets/areas/scrap/js/function1.js?v=@DateTime.Now.Ticks"></script>
+}

@@ -1,0 +1,200 @@
+﻿@{
+    ViewData["Title"] = "Bonepile";
+    Layout = "~/Areas/Bonepile/Views/Shared/_Layout_Bonepile.cshtml";
+}
+
+<!-- Header -->
+<header>
+    <h1>Bonepile 2.0</h1>
+    <div class="row">
+        <div class="col-md-3">
+            <label for="startDate">Từ ngày:</label>
+            <input type="datetime-local" id="startDate" value="2025-03-16T11:00">
+        </div>
+        <div class="col-md-3">
+            <label for="endDate">Đến ngày:</label>
+            <input type="datetime-local" id="endDate" />
+        </div>
+        <div class="col-md-3">
+            <button id="applyFilters" class="btn btn-primary">Áp dụng</button>
+        </div>
+    </div>
+</header>
+
+<!-- KPI Cards -->
+<div class="kpi-cards row my-6">
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-total smaller-card">
+            <div class="card-body">
+                <h5 class="card-title">Bonepile 2.0</h5>
+                <p class="card-text" id="totalCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-waitingScrap smaller-card">
+            <div class="card-body">
+                <h5 class="card-title">WaitingScrap</h5>
+                <p class="card-text" id="waitingScrapCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-repair smaller-card">
+            <div class="card-body">
+                <h5 class="card-title">UnderRepair</h5>
+                <p class="card-text" id="repairCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-online smaller-card">
+            <div class="card-body">
+                <h5 class="card-title">Online</h5>
+                <p class="card-text" id="onlinePd">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-kanban smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">KANBAN_IN</h5>
+                <p class="card-text" id="kanbanIn">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-link smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">Chờ Link</h5>
+                <p class="card-text" id="waitingLink">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-checkOut smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">Chờ CheckOut</h5>
+                <p class="card-text" id="waitingOut">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-checkIn smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">Chờ CheckIn</h5>
+                <p class="card-text" id="waitingIn">N/A</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Donut Chart and sumMaterialsTable -->
+<div class="row my-4">
+    <!-- Biểu đồ phân bố trạng thái -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
+                <h5 class="card-title">Phân bố trạng thái</h5>
+                <canvas id="statusDonutChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng sumMaterialsTable -->
+    <div class="col-md-8">
+        <div class="card">
+            <!--HTML CỦA SPINER-->
+            <div id="spinner-overlay">
+                <span class="loader"></span>
+            </div>
+            <div class="card-body">
+                <table id="sumMaterialsTable" class="display table table-bordered mt-1 table-striped datatable-table" style="width:100%">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <select id="statusFilter" class="form-control">
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="Repair">Repair</option>
+                                <option value="CheckOut">CheckOut</option>
+                                <option value="CheckIn">CheckIn</option>
+                                <option value="WaitingLink">WaitingLink</option>
+                                <option value="WaitingKanBanIn">WaitingKanBanIn</option>
+                                <option value="Online">Online</option>
+                                <option value="WaitingApproveScrap">WaitingApproveScrap</option>
+                                <option value="Scrap">Scrap</option>
+                            </select>
+                        </div>
+                    </div>
+                    <thead>
+                        <tr>
+                            <th>SERIAL_NUMBER</th>
+                            <th>PRODUCT_LINE</th>
+                            <th>MODEL_NAME</th>
+                            <th>MO_NUMBER</th>
+                            <th>WIP_GROUP</th>
+                            <th>FAIL_STATION</th>
+                            <th>TEST_CODE</th>
+                            <th>ERROR_DESC</th>
+                            <th>TIME</th>
+                            <th>FLAG</th>
+                            <th>PO_NO</th>
+                            <th>PO_ITEM</th>
+                            <th>FAIL_AGING</th>
+                            <th>VERSION_CODE</th>
+                            <th>WORK_FLAG</th>
+                            <th>ERROR_FLAG</th>
+                            <th>MO_NEW</th>
+                            <th>STATUS</th>
+                            <th>CHECKIN_TIME</th>
+                            <th>CHECKOUT_TIME</th>
+                            <th>SCRAP_STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/assets/areas/bonepile/js/bonepile2_0.js?v=@DateTime.Now.Ticks"></script>
+    <style>
+
+        .smaller-card {
+            transform: scale(0.75); /* Reduce card size by 25% */
+            margin: 0 -5px; /* Minimize spacing between cards */
+        }
+
+        .smaller-text .card-title {
+            font-size: 1.2rem; /* Smaller title font size */
+        }
+
+        .smaller-text .card-text {
+            font-size: 1.3rem; /* Smaller text font size */
+        }
+
+        .kpi-cards {
+            display: flex;
+            flex-wrap: nowrap; /* Keep cards in a single row */
+        }
+
+            .kpi-cards .col-md-2,
+            .kpi-cards .col-lg-1,
+            .kpi-cards .col-sm-3,
+            .kpi-cards .col-3 {
+                flex: 0 0 12.5%; /* Divide equally for 7 cards (100% / 7) */
+                max-width: 12.5%; /* Ensure equal width */
+                padding: 0; /* Reduce padding for tighter fit */
+            }
+
+        #sumMaterialsTable th, #sumMaterialsTable td {
+            width: 120px !important;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    </style>
+}

@@ -1,0 +1,346 @@
+﻿@{
+    ViewData["Title"] = "Check ULT data";
+}
+@{
+    Layout = "~/Areas/Allpart/Views/Shared/layout_allpart.cshtml";
+}
+
+<link href="~/assets/css/yrdclc.css" rel="stylesheet" />
+
+<div class="card shadow-sm">
+    <div class="card-header bg-nvidia-green text-white">
+        <h1 class="h4 mb-0 text-center">Tìm Kiếm Thông Tin ULT</h1>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-4 align-items-center">
+            <div class="col-md-4">
+                <textarea id="serialNumber" class="form-control" rows="3" placeholder="Nhập SerialNumber/ULT/Model..."></textarea>
+            </div>
+            <div class="col-md-2">
+                <label for="type-options" class="form-label">Chọn kiểu tra cứu</label>
+                <select id="type-options" class="form-select">
+                    <option selected disabled>SELECT TYPE</option>
+                    <option value="1">Tra cứu theo SN</option>
+                    <option value="2">Tra cứu theo ULT</option>
+                    <option value="3">Tra cứu theo Model</option>
+                </select>
+            </div>
+            <div id="time-tag" class="col-md-2" style="display: none;">
+                <label for="startDate">Bắt đầu:</label>
+                <input type="datetime-local" id="startDate" class="form-control" />
+                <label for="endDate">Kết thúc:</label>
+                <input type="datetime-local" id="endDate" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <button onclick="search()" class="btn btn-nvidia-green w-100">Tìm kiếm</button>
+            </div>
+            <div class="col-md-2">
+                <button onclick="downloadExcel()" class="btn btn-nvidia-green w-100">Tải xuống Excel</button>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <div class="table-responsive align-items-center">
+                <table id="ULTDataTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>TimeTest</th>
+                            <th>Model</th>
+                            <th>DateTest</th>
+                            <th>Path_Test_On</th>
+                            <th>Path_Test_Off</th>
+                            <th>serial_number</th>
+                            <th>ULT</th>
+                            <th>Result_Test_On</th>
+                            <th>Result_Test_Off</th>
+                            <th>Error_Code</th>
+                            <th>SendTime</th>
+                            <th>Status</th>
+                            <th>DataType</th>
+                            <th>StationTest</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ULTDataTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let tableData = []; // Lưu dữ liệu để xuất Excel
+        let dataTable; // Lưu tham chiếu đến DataTable
+
+        // Hàm tạo nội dung cho ô với tooltip
+        function createTooltipCell(data) {
+            return `<span class="tooltip-trigger" data-tooltip="${data || ''}">${data || ''}</span>`;
+        }
+
+        // Hàm gắn sự kiện tooltip cho các phần tử
+        function attachTooltipEvents() {
+            $('.tooltip-trigger').each(function () {
+                const $this = $(this);
+                if (!$this.data('tooltip-initialized')) {
+                    $this.on('mouseover', function (e) {
+                        const tooltipText = $this.data('tooltip');
+                        if (tooltipText) {
+                            let tooltip = document.querySelector('.custom-tooltip');
+                            if (!tooltip) {
+                                tooltip = document.createElement('div');
+                                tooltip.className = 'custom-tooltip';
+                                document.body.appendChild(tooltip);
+                            }
+                            tooltip.textContent = tooltipText;
+                            tooltip.style.display = 'block';
+                            tooltip.style.left = (e.pageX + 10) + 'px';
+                            tooltip.style.top = (e.pageY - 20) + 'px';
+                        }
+                    }).on('mousemove', function (e) {
+                        const tooltip = document.querySelector('.custom-tooltip');
+                        if (tooltip && tooltip.style.display === 'block') {
+                            tooltip.style.left = (e.pageX + 10) + 'px';
+                            tooltip.style.top = (e.pageY - 20) + 'px';
+                        }
+                    }).on('mouseout', function () {
+                        const tooltip = document.querySelector('.custom-tooltip');
+                        if (tooltip) {
+                            tooltip.style.display = 'none';
+                        }
+                    });
+                    $this.data('tooltip-initialized', true);
+                }
+            });
+        }
+
+        // Hàm định dạng ngày giờ từ datetime-local sang YYYY/MM/DD
+        function formatDateTime(dateTime) {
+            if (!dateTime) return '';
+            const date = new Date(dateTime);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}/${month}/${day}`;
+        }
+
+        $(document).ready(function () {
+            // Khởi tạo DataTable
+            dataTable = $('#ULTDataTable').DataTable({
+                pageLength: 10,
+                scrollX: true,
+                responsive: true,
+                fixedHeader: true
+            });
+
+            // Ẩn time-tag mặc định
+            $('#time-tag').hide();
+
+            // Xử lý sự kiện thay đổi type-options
+            $('#type-options').on('change', function () {
+                if ($(this).val() === '3') {
+                    $('#time-tag').show();
+                } else {
+                    $('#time-tag').hide();
+                    $('#startDate').val('');
+                    $('#endDate').val('');
+                }
+            });
+        });
+
+        async function search() {
+            const serialNumbersText = document.getElementById('serialNumber').value.trim();
+            const typeOption = document.getElementById('type-options').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!serialNumbersText) {
+                alert('Vui lòng nhập ít nhất một giá trị.');
+                return;
+            }
+
+            if (!typeOption || typeOption === 'SELECT TYPE') {
+                alert('Vui lòng chọn kiểu tra cứu.');
+                return;
+            }
+
+            if (typeOption === '3' && (!startDate || !endDate)) {
+                alert('Vui lòng nhập cả ngày bắt đầu và ngày kết thúc khi tra cứu theo Model.');
+                return;
+            }
+
+            const inputList = serialNumbersText.split('\n').map(item => item.trim()).filter(item => item);
+            if (inputList.length === 0) {
+                alert('Danh sách đầu vào không hợp lệ.');
+                return;
+            }
+
+            // Hiển thị loading overlay
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.innerHTML = `
+                <div class="spinner"></div>
+                <div>Đang tải dữ liệu, vui lòng chờ...</div>
+            `;
+            document.body.appendChild(loadingOverlay);
+
+            try {
+                let allResults = [];
+                let url;
+
+                if (typeOption === '1') {
+                    // Chia batch cho tra cứu theo SN
+                    const batchSize = 50;
+                    for (let i = 0; i < inputList.length; i += batchSize) {
+                        const batch = inputList.slice(i, i + batchSize);
+                        const sns = batch.join(';');
+                        url = `http://10.220.130.117:2222/api/NVIDIA/ScanATestB/SearchData?SNS=${encodeURIComponent(sns)}`;
+
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(`Lỗi khi gọi API: ${response.status} - ${errorText}`);
+                        }
+
+                        const result = await response.json();
+                        if (result.StatusCode !== 200 || !result.Data) {
+                            throw new Error(result.Message || 'Dữ liệu trả về không hợp lệ.');
+                        }
+
+                        if (result.Data && result.Data.length > 0) {
+                            allResults = allResults.concat(result.Data);
+                        }
+                    }
+                } else if (typeOption === '2') {
+                    const ults = inputList.join(';');
+                    url = `http://10.220.130.117:2222/api/NVIDIA/ScanATestB/SearchData?ULTs=${encodeURIComponent(ults)}`;
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Lỗi khi gọi API: ${response.status} - ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.StatusCode !== 200 || !result.Data) {
+                        throw new Error(result.Message || 'Dữ liệu trả về không hợp lệ.');
+                    }
+
+                    allResults = result.Data;
+                } else if (typeOption === '3') {
+                    const model = inputList[0]; // Lấy dòng đầu tiên làm model
+                    const formattedStartDate = formatDateTime(startDate);
+                    const formattedEndDate = formatDateTime(endDate);
+                    url = `http://10.220.130.117:2222/api/NVIDIA/ScanATestB/SearchData?model=${encodeURIComponent(model)}&startTime=${encodeURIComponent(formattedStartDate)}&endTime=${encodeURIComponent(formattedEndDate)}`;
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Lỗi khi gọi API: ${response.status} - ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.StatusCode !== 200 || !result.Data) {
+                        throw new Error(result.Message || 'Dữ liệu trả về không hợp lệ.');
+                    }
+
+                    allResults = result.Data;
+                }
+
+                // Cập nhật tableData để xuất Excel
+                tableData = allResults;
+
+                // Xóa dữ liệu cũ trong DataTable
+                dataTable.clear();
+
+                if (tableData.length === 0) {
+                    alert('Không tìm thấy dữ liệu cho các thông tin đã nhập.');
+                    dataTable.draw();
+                    document.body.removeChild(loadingOverlay);
+                    return;
+                }
+
+                // Thêm dữ liệu mới vào DataTable
+                tableData.forEach(row => {
+                    dataTable.row.add([
+                        createTooltipCell(row.TimeTest || ''),
+                        createTooltipCell(row.Model || ''),
+                        createTooltipCell(row.DateTest || ''),
+                        createTooltipCell(row.Path_Test_On || ''),
+                        createTooltipCell(row.Path_Test_Off || ''),
+                        createTooltipCell(row.serial_number || ''),
+                        createTooltipCell(row.ULT || ''),
+                        createTooltipCell(row.Result_Test_On || ''),
+                        createTooltipCell(row.Result_Test_Off || ''),
+                        createTooltipCell(row.Error_Code || ''),
+                        createTooltipCell(row.SendTime || ''),
+                        createTooltipCell(row.Status || ''),
+                        createTooltipCell(row.DataType || ''),
+                        createTooltipCell(row.StationTest || '')
+                    ]);
+                });
+
+                // Vẽ lại bảng
+                dataTable.draw();
+
+                // Gắn lại sự kiện tooltip
+                attachTooltipEvents();
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`Đã xảy ra lỗi: ${error.message}`);
+            } finally {
+                // Xóa loading overlay
+                document.body.removeChild(loadingOverlay);
+            }
+        }
+
+        function downloadExcel() {
+            if (tableData.length === 0) {
+                alert('Không có dữ liệu để xuất Excel.');
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(tableData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'ULTData');
+
+            // Đặt tiêu đề cột
+            worksheet['!cols'] = [
+                { wch: 20 }, // TimeTest
+                { wch: 15 }, // Model
+                { wch: 10 }, // DateTest
+                { wch: 30 }, // Path_Test_On
+                { wch: 30 }, // Path_Test_Off
+                { wch: 20 }, // serial_number
+                { wch: 20 }, // ULT
+                { wch: 15 }, // Result_Test_On
+                { wch: 15 }, // Result_Test_Off
+                { wch: 30 }, // Error_Code
+                { wch: 20 }, // SendTime
+                { wch: 15 }, // Status
+                { wch: 15 }, // DataType
+                { wch: 15 }  // StationTest
+            ];
+
+            XLSX.writeFile(workbook, 'ULTData.xlsx');
+        }
+    </script>
+}

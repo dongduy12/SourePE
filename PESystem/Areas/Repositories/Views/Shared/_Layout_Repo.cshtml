@@ -1,0 +1,133 @@
+﻿@using PESystem.Helpers
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHO RE</title>
+    <link rel="icon" href="~/assets/img/repository.png" type="image/png">
+    <link href="~/css/site.min.css" rel="stylesheet" />
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/lib/select2/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="~/lib/datatable/jquery.datatables.min.css" rel="stylesheet" />
+    <link href="~/lib/all-fa-icon/css/all.min.css" rel="stylesheet" />
+    <script src="~/lib/gsap-particles/particles.min.js"></script>
+    <script src="~/lib/gsap-particles/gsap.min.js"></script>
+</head>
+
+<body>
+
+    <script>
+        (function () {
+            const isSidebarFixed = localStorage.getItem('isSidebarFixed') == 'true';
+            if (isSidebarFixed) {
+                document.documentElement.classList.add('sidebar-expanded');
+                document.write(`
+                                <style>
+                                    #sidebar {width:260px;}
+                                    #sidebar .nav-link span, #sidebar .dashboard-container span{opacity:1;}
+                                    #mainContent { margin-left: 260px; }
+                                    .header { left: 260px; width: calc(100% - 260px); }
+                                </style>
+                                    `);
+            } else {
+                document.documentElement.classList.remove('sidebar-expanded');
+                document.write(`
+                                    <style>
+                                        #sidebar { width: 70px; }
+                                        #sidebar .nav-link span, #sidebar .dashboard-container span { opacity: 0; }
+                                        #mainContent { margin-left: 70px; }
+                                        .header { left: 70px; width: calc(100% - 70px); }
+                                    </style>
+                                `);
+            }
+        })();
+    </script>
+
+    <div class="layout">
+
+        <header class="header d-flex justify-content-between align-items-center" id="header">
+            <div class="d-flex align-items-center">
+                <span class="input-group-text bg-transparent border-0" onclick="toggleSearch()">
+                    <i class="fas fa-search" style="cursor: pointer;"></i>
+                </span>
+                <div class="search-container" id="searchContainer">
+                    <input type="text" class="form-control" placeholder="Search...">
+                </div>
+            </div>
+            <ul class="d-flex align-items-center list-unstyled m-0">
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <li class="nav-item dropdown">
+                        <a class="nav-link d-flex align-items-center avatar-link" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="~/assets/img/avatar.png" class="user-avatar" alt="User" style="width: 40px; height: 40px;">
+                            <span class="d-none d-md-block ps-2">@User.Identity.Name</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li class="dropdown-header text-center"><h6>@User.Identity.Name</h6></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="nav-item text-center">
+                                <a class="nav-link avatar-link" href="#">
+                                    <img src="~/assets/img/avatar.png" class="user-avatar mb-2" alt="User" style="width: 50px; height: 50px;">
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="nav-item text-center">
+                                <form asp-action="Logout" asp-controller="Account" method="post" style="display:inline;">
+                                    <button type="submit" class="btn btn-ne">Đăng xuất</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                }
+            </ul>
+        </header>
+
+        <!-- Sidebar dọc -->
+        <div id="sidebar" class="sidebar">
+            <!-- Logo and Dashboard with fixed checkbox -->
+            <div class="dashboard-container">
+                <a href="@Url.Action("Home", "Home", new { area = "" })">
+                    <img src="~/assets/img/repository.png" style="width:48px; height:48px;" class="logo" />
+                </a>
+                <span class="spanTitle" style="font-size: 1.0rem; font-weight: bold;">
+                    KHO RE
+                </span>
+@*                <div class="fixed-checkbox">
+                    <input type="checkbox" id="toggleSidebarFixed" title="Giữ cố định" />
+                    <label for="toggleSidebarFixed"><i class="fas fa-thumbtack"></i></label>
+                </div>*@
+                <span><input type="checkbox" id="toggleSidebarFixed" title="" /></span>
+            </div>
+            <nav class="nav flex-column">
+                <!-- Menu Items -->
+                <a href="@Url.Action("Home", "Home", new { area = "" })" class="nav-link"><i class="fas fa-home"></i> <span>Trang chủ</span></a>
+                <a href="@Url.Action("Index", "Home", new { area = "Repositories" })" class="nav-link @ViewContext.IsActive("Home", "Index")"><i class="fas fa-dashboard"></i> <span>Dashboard</span></a>
+                <a href="@Url.Action("Index", "SearchProduct", new { area = "Repositories" })" class="nav-link @ViewContext.IsActive("SearchProduct", "Index")"><i class="fas fa-search"></i> <span>Tìm kiếm</span></a>
+                <a href="@Url.Action("Index", "AddProduct", new { area = "Repositories" })" class="nav-link @ViewContext.IsActive("AddProduct", "Index")"><i class="fas fa-download"></i> <span>Nhập kho</span></a>
+                <a href="@Url.Action("Index", "Export", new { area = "Repositories" })" class="nav-link  @ViewContext.IsActive("Export", "Index")"><i class="fas fa-upload"></i> <span>Xuất kho</span></a>
+                <a href="@Url.Action("Index", "KhoScrap", new { area = "Repositories" })" class="nav-link  @ViewContext.IsActive("KhoScrap", "Index")"><i class="fa fa-bug"></i> <span>Kho Phế</span></a>
+                <a href="@Url.Action("Index", "KhoOk", new { area = "Repositories" })" class="nav-link  @ViewContext.IsActive("KhoOk", "Index")"><i class="fa fa-check-circle"></i> <span>Kho Ok</span></a>
+            </nav>
+        </div>
+
+        <main id="mainContent">
+            <!--HTML CỦA SPINER-->
+            <div id="spinner-overlay">
+                <span class="loader"></span>
+            </div>
+            @RenderBody()
+        </main>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="~/lib/sweetalert2/dist/sweetalert2.all.js"></script>
+    <script src="~/lib/select2/dist/js/select2.full.min.js"></script>
+    <script src="~/lib/datatable/jquery.datatables.min.js"></script>
+    <script src="~/lib/datatable/datatables.fixedheader.min.js"></script>
+    <script src="~/lib/excel/xlsx.full.min.js"></script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

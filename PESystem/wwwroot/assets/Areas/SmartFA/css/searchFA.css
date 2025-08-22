@@ -1,0 +1,87 @@
+﻿/* Căn giữa bảng và tăng kích thước */
+.table-container {
+    overflow: auto; /* Cho phép cuộn ngang và dọc */
+    display: flex;
+    justify-content: center; /* Căn giữa bảng theo chiều ngang */
+    align-items: center; /* Căn giữa bảng theo chiều dọc (nếu cần) */
+    margin-top: 20px; /* Khoảng cách từ trên */
+    max-height: 500px; /* Chiều cao tối đa của bảng */
+    position: relative; /* Đảm bảo sticky hoạt động */
+    border: 1px solid #ccc;
+    background-color: #fff; /* Đặt màu nền để loại bỏ trong suốt */
+}
+
+.datatable-table {
+    width: 100%; /* Tăng chiều rộng bảng */
+    text-align: center; /* Căn giữa nội dung bảng */
+    border: 1px solid #ccc; /* Đường viền bảng */
+    background-color: #f8f9fa; /* Màu nền nhạt */
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Tạo hiệu ứng bóng */
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+    .datatable-table th, .datatable-table td {
+        padding: 12px 15px; /* Tăng khoảng cách bên trong ô */
+        text-align: center; /* Căn giữa văn bản trong ô */
+        font-size: 14px !important; /* Thu nhỏ chữ trong bảng */
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        padding: 8px;
+    }
+
+    .datatable-table th {
+        background-color: #4CAF50; /* Màu nền tiêu đề bảng */
+        color: white; /* Màu chữ tiêu đề */
+    }
+
+    .datatable-table td {
+        background-color: #fff; /* Màu nền ô dữ liệu */
+    }
+
+/* Tăng kích thước và căn giữa tiêu đề */
+.table-container h2 {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+
+/* Đặt chiều rộng các cột đều nhau */
+.datatable-table th, .datatable-table td {
+    width: 12.5%; /* Chia đều 8 cột (100%/8 = 12.5%) */
+    text-align: center;
+    white-space: nowrap; /* Không cho nội dung xuống dòng */
+    overflow: hidden; /* Ẩn nội dung khi quá dài */
+    text-overflow: ellipsis; /* Hiển thị dấu "..." khi nội dung bị ẩn */
+}
+
+    /* Định dạng cột TestCode */
+    .datatable-table td:nth-child(4), /* Cột thứ 4 là TestCode */
+    .datatable-table td:nth-child(5) { /* Cột thứ 5 là Data1 */
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        max-width: 200px; /* Chiều rộng tối đa của cột */
+        overflow: hidden;
+    }
+
+/* Hiệu ứng khi hover */
+.datatable-table tr:hover {
+    background-color: #76b900; /* Tô sáng hàng khi hover */
+    cursor: pointer; /* Đổi con trỏ chuột */
+}
+
+.datatable-table > tbody > tr:hover {
+        background-color: #76b900; /* Nền khi hover */
+}
+/* Tooltip hiển thị khi hover */
+.tooltip {
+    position: absolute;
+    display: none;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 9999;
+}

@@ -1,0 +1,39 @@
+﻿@{
+    ViewData["Title"] = "PDRepository";
+}
+@{
+    Layout = "~/Areas/PDRepositories/Views/Shared/_Layout_PD.cshtml";
+}
+
+<main id="mainContent">
+    <!--lựa chọn thời gian-->
+    <div class="date-time-range text-muted">
+        <label for="startDate">Bắt đầu:</label>
+        <input type="datetime-local" id="startDate" />
+
+        <label for="endDate">Kết thúc:</label>
+        <input type="datetime-local" id="endDate" />
+        <select id="search-options">
+            <option selected>TYPE</option>
+            <option value="add-stock">Nhập kho</option>
+            <option value="out-stock">Xuất kho</option>
+        </select>
+        <button id="searchBtn" class="btn btn-primary">Tìm kiếm</button>
+        <button id="PdStock-ExportExcel-btn" class="btn btn-secondary">
+            <i class="fas fa-file-export"></i> Xuất Excel
+        </button>
+    </div>
+    <!--Hiển thị kết quả số lượng-->
+    <div id="result" class="row text-muted">
+        <p>Số lượng: <span id="dashboard-qty"></span></p>
+    </div>
+    <!--Hiển thị bảng dữ liệu-->
+    <div>
+        <div id="PDStock-search-results-section" style="overflow: auto;"></div>
+    </div>
+
+</main>
+
+@section Scripts {
+    <script src="~/assets/areas/pdstock/js/pdstockdashboard.js"></script>
+}

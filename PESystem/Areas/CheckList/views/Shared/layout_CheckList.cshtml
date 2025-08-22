@@ -1,0 +1,86 @@
+﻿@using PESystem.Helpers
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check List</title>
+    <link rel="icon" href="~/assets/img/check_list.png" type="image/png">
+    <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/lib/all-fa-icon/css/all.min.css" rel="stylesheet" />
+    <link href="~/lib/datatable/jquery.datatables.min.css" rel="stylesheet" />
+    <script src="~/lib/gsap-particles/particles.min.js"></script>
+    <script src="~/lib/gsap-particles/gsap.min.js"></script>
+</head>
+<body>
+    <script>
+        (function () {
+            const isSidebarFixed = localStorage.getItem('isSidebarFixed') === 'true';
+            if (isSidebarFixed) {
+                document.documentElement.classList.add('sidebar-expanded');
+            } else {
+                document.documentElement.classList.remove('sidebar-expanded');
+            }
+        })();
+    </script>
+
+    <header class="header d-flex justify-content-between align-items-center" id="header">
+        <div class="d-flex align-items-center">
+            <button class="btn btn-link text-decoration-none d-md-none me-2" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <span class="input-group-text bg-transparent border-0" onclick="toggleSearch()">
+                <i class="fas" style="cursor: pointer;"></i>
+            </span>
+            <div class="search-container" id="searchContainer">
+                <input type="text" class="form-control" placeholder="Search...">
+            </div>
+        </div>
+        <ul class="d-flex align-items-center">
+            @if (User.Identity.IsAuthenticated)
+            {
+                <li class="nav-item dropdown">
+                    <a class="nav-link d-flex align-items-center avatar-link" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="~/assets/img/avatar.png" class="user-avatar" alt="User" style="width: 40px; height: 40px;">
+                        <span class="d-none d-md-block ps-2">@User.Identity.Name</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </header>
+    <!-- Sidebar dọc -->
+    <div id="sidebar" class="sidebar">
+        <!-- Logo and Dashboard with fixed checkbox -->
+        <div class="dashboard-container">
+            <a href="@Url.Action("Home", "Home", new { area = "" })">
+                <img src="~/assets/img/check_list.png" style="width:48px; height:48px;" class="logo" />
+            </a>
+            <span class="spanTitle" style="font-size: 1.0rem; font-weight: bold;">Check List</span>
+            <span><input type="checkbox" id="toggleSidebarFixed" title="Giữ cố định" /></span>
+        </div>
+        <nav class="nav flex-column">
+            <!-- Menu Items -->
+            <a href="@Url.Action("Home", "Home", new { area = "" })" class="nav-link"><i class="fas fa-home"></i> <span>Trang chủ</span></a>
+            <a href="@Url.Action("Index", "Home", new { area = "CheckList" })" class="nav-link @ViewContext.IsActive("Home", "Index")"><i class=" fas fa-dashboard"></i> <span>Dashboard</span></a>
+            <a href="@Url.Action("Index", "ListIssue", new { area = "CheckList" })" class="nav-link @ViewContext.IsActive("ListIssue", "Index")"><i class="fas fa-list"></i> <span>List issue</span></a>
+
+        </nav>
+    </div>
+
+
+
+    <main id="mainContent">
+        <!--SPINER-->
+        <div id="spinner-overlay">
+            <span class="loader"></span>
+        </div>
+        @RenderBody()
+    </main>
+    <script src="~/js/site.min.js" asp-append-version="true"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/datatable/jquery.datatables.min.js"></script>
+    <script src="~/lib/excel/xlsx.full.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

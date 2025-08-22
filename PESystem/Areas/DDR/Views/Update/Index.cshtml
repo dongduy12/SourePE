@@ -1,0 +1,36 @@
+﻿@{
+    ViewData["Title"] = "DDR TOOL";
+}
+@{
+    Layout = "~/Areas/DDR/Views/Shared/Layout_DDR.cshtml";
+}
+
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+<section>
+    <div class="container">
+        <!-- Form nhập SN -->
+        <form id="sn-form">
+            <div class="form-group">
+                <label for="serialNumber" class="font-weight-bold">Serial Number:</label>
+
+                <textarea id="serialNumber"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Nhập danh sách Serial Number tại đây"></textarea>
+                <button type="button" class="btn btn-success">
+                    <i class="fa fa-sync-alt"></i> Update Status
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+    <div class="mt-2">
+        <!-- Bảng hiển trạng thái SN -->
+    </div>
+</section>
+@section Scripts {
+    <script src="~/assets/areas/smartfa/js/importfa.js?v=@DateTime.Now.Ticks"></script>
+}

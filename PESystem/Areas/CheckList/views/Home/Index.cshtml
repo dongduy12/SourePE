@@ -1,0 +1,44 @@
+﻿@{
+    ViewData["Title"] = "Check List Area";
+}
+@{
+    Layout = "~/Areas/CheckList/views/Shared/layout_CheckList.cshtml";
+}
+
+<div class="container mt-4">
+    
+    <div class="row">
+        <!-- Biểu đồ Status (Pie Chart) -->
+        <div class="col-md-4">
+            <div><h5 class="text-center">Summarry status</h5></div>
+            <div><canvas id="statusPieChart"></canvas></div>
+        </div>
+
+        <!-- Biểu đồ Owner (Bar Chart) -->
+        <div class="col-md-6">
+            <div><h5 class="text-center">Summarry by owner</h5></div>
+            <div><canvas id="ownerBarChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #statusPieChart {
+        max-width: 70%;
+        max-height: 500px;
+        margin: auto;
+    }
+
+    #ownerBarChart {
+        width: 90%;
+        max-height: 500px;
+        margin: auto;
+    }
+</style>
+
+
+@section Scripts {
+    <script src="~/assets/areas/checklist/js/Dashboard.js"></script>
+    <script src="~/assets/areas/checklist/js/chart.js"></script>
+    <script src="~/assets/areas/checklist/js/chartjs-plugin-datalabels.min.js"></script>
+}

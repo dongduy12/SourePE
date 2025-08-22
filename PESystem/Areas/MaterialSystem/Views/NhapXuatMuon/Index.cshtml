@@ -1,0 +1,149 @@
+﻿@{
+    ViewData["Title"] = "Material Area";
+    Layout = "~/Areas/MaterialSystem/views/Shared/Layout_material.cshtml";
+}
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<!-- Thẻ ẩn chứa tên người dùng -->
+<input type="hidden" id="entryPerson" value="@User.Identity.Name" />
+
+<div id="option-list" class="mt-2 col-md-12">
+    <div class="row">
+        <div class="col-md-2">
+            <input id="tem-allparts" name="tem-allparts" class="location-field form-control" placeholder="TEM ALLPARTS" />
+        </div>
+        <div class="col-md-2">
+            <input id="part-number" class="form-control" readonly placeholder="PART NUMBER" />
+        </div>
+        <div class="col-md-2">
+            <input id="vendor-code" name="vendor-code" class="form-control" readonly placeholder="VENDOR CODE" />
+        </div>
+        <div class="col-md-2">
+            <input id="vendor-name" name="vendor-name" class="form-control" readonly placeholder="VENDOR NAME" />
+        </div>
+        <div class="col-md-2">
+            <input id="date-code" name="date-code" class="form-control" readonly placeholder="DATE CODE" />
+        </div>
+        <div class="col-md-2">
+            <input id="lot-code" name="lot-code" class="form-control" readonly placeholder="LOT CODE" />
+        </div>
+        <div class="col-md-2">
+            <input id="quantity" name="quantity" class="form-control mt-2" placeholder="Q'ty" />
+        </div>
+        <div class="col-md-2">
+            <input id="esd" name="esd" class="form-control mt-2" placeholder="ESD" />
+        </div>
+        <div class="col-md-2">
+            <input id="location" name="location" class="form-control mt-2" placeholder="LOCATION" />
+        </div>
+        <div class="col-md-2">
+            <input id="remark" name="remark" class="form-control mt-2" placeholder="REMARK" />
+        </div>
+    </div>
+
+    <div class="action-buttons fixed-column d-flex mb-2 mt-2">
+        @{
+            var allowedAreas = HttpContextAccessor.HttpContext.User.Claims
+            .FirstOrDefault(c => c.Type == "AllowedAreas")?.Value.Split(',');
+            var canShowMaterial = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "Material");
+        }
+        @if(canShowMaterial){
+            <button id="entry-btn" class="btn btn-ne button-fixed-width flex-fill me-2">NHẬP KHO</button>
+            <button id="export-btn" class="btn btn-ne button-fixed-width flex-fill me-2">XUẤT KHO</button>
+            <button id="borrow-btn" class="btn btn-ne button-fixed-width flex-fill me-2">PHÁT LIỆU</button>
+        }
+        <button id="export-excel-btn" class="btn btn-ne button-fixed-width flex-fill me-2">EXCEL</button>
+    </div>
+</div>
+
+<table id="sumMaterialsTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+    <thead>
+        <tr>
+            <th><input type="checkbox" id="selectAllCheckbox" title="Chọn tất cả" /></th>
+            <th>MÃ_LIỆU</th>
+            <th>VENDOR</th>
+            <th>MODEL</th>
+            <th>DATE_CODE</th>
+            <th>LOT_CODE</th>
+            <th>LIỆU_OK</th>
+            <th>LIỆU_NG</th>
+            <th>VỊ_TRÍ</th>
+            <th>ESD</th>
+            <th>ĐÃ_PHÁT</th><!--Đang mượn-->
+            <th>LIỆU_PHẾ</th><!--Đã phế-->
+            <th>TỔNG_LĨNH</th>
+            <th>VỊ_TRÍ_TRÊN_BẢN</th>
+            <th>REMARK</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+@section Scripts {
+    <style>
+
+        /* CSS cho tooltip tùy chỉnh */
+        .custom-tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            white-space: normal;
+            max-width: 300px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        /* Hiển thị tooltip khi di chuột vào */
+        td:hover .custom-tooltip {
+            display: block;
+        }
+        /* Giới hạn độ rộng cột */
+        #sumMaterialsTable th, #sumMaterialsTable td {
+            white-space: nowrap; /* Ngăn xuống dòng */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Hiển thị dấu "..." nếu nội dung quá dài */
+            max-width: 80px; /* Giới hạn độ rộng cột */
+        }
+        #sumMaterialsTable th:nth-child(1),
+        #sumMaterialsTable td:nth-child(1){
+            width: 20px!important;
+        }
+
+        /* Cố định thanh tìm kiếm và phân trang khi cuộn ngang */
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_paginate {
+            position: sticky;
+            top: 0;
+            background-color: #fff;
+            z-index: 1;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            padding:5px;
+        }
+
+        /* Đảm bảo thanh tìm kiếm và phân trang không bị che khuất */
+        .dataTables_wrapper {
+            overflow-x: auto;
+        }
+
+            /* Điều chỉnh chiều rộng tối thiểu cho wrapper */
+            .dataTables_wrapper .dataTables_scroll {
+                min-width: 100%;
+            }
+
+        /* Thêm hiệu ứng hover cho hàng */
+        .datatable-table tbody tr:hover td,
+        .datatable-table tbody tr:hover th {
+            background-color: #76b900 !important;
+            /*transition: background-color 0.2s ease;*/
+        }
+    </style>
+    <script src="~/assets/areas/material/js/add_material.js?v=@DateTime.Now.Ticks"></script>
+}
+

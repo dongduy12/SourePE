@@ -1,0 +1,153 @@
+﻿@using PESystem.Helpers
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartFA</title>
+    <link rel="icon" href="~/assets/img/smartFA.png" type="image/png">
+    <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/lib/datatable/jquery.datatables.min.css" rel="stylesheet" />
+    <link href="~/lib/datatable/fixedcolumns.datatables.min.css" rel="stylesheet" />
+    <link href="~/lib/all-fa-icon/css/all.min.css" rel="stylesheet" />
+    <link href="~/assets/areas/smartfa/css/importfa.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+    <script src="~/lib/gsap-particles/particles.min.js"></script>
+    <script src="~/lib/gsap-particles/gsap.min.js"></script>
+</head>
+<body>
+    <!--Áp dụng trạng thái ban đầu từ localStorage -->
+    <script>
+        (function () {
+            const isSidebarFixed = localStorage.getItem('isSidebarFixed') === 'true';
+            if (isSidebarFixed) {
+                document.documentElement.classList.add('sidebar-expanded');
+                document.write(`
+                    <style>
+                        #sidebar { width: 260px; }
+                        #sidebar .nav-link span, #sidebar .dashboard-container span { opacity: 1; }
+                        #mainContent { margin-left: 260px; }
+                        .header { left: 260px; width: calc(100% - 260px); }
+                    </style>
+                `);
+            } else {
+                document.documentElement.classList.remove('sidebar-expanded');
+                document.write(`
+                    <style>
+                         #sidebar { width: 70px; }
+                        #sidebar .nav-link span, #sidebar .dashboard-container span { opacity: 0; }
+                        #mainContent { margin-left: 70px; }
+                        .header { left: 70px; width: calc(100% - 70px); }
+                    </style>
+                `);
+            }
+        })();
+    </script>
+
+    <div class="layout">
+
+        <header class="header d-flex justify-content-between align-items-center" id="header">
+            <div class="d-flex align-items-center">
+                <span class="input-group-text bg-transparent border-0" onclick="toggleSearch()">
+                    <i class="fas fa-search" style="cursor: pointer;"></i>
+                </span>
+                <div class="search-container" id="searchContainer">
+                    <input type="text" class="form-control" placeholder="Search...">
+                </div>
+            </div>
+            <ul class="d-flex align-items-center list-unstyled m-0">
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <li class="nav-item dropdown">
+                        <a class="nav-link d-flex align-items-center avatar-link" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="~/assets/img/avatar.png" class="user-avatar" alt="User" style="width: 40px; height: 40px;">
+                            <span class="d-none d-md-block ps-2">@User.Identity.Name</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li class="dropdown-header text-center"><h6>@User.Identity.Name</h6></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="nav-item text-center">
+                                <a class="nav-link avatar-link" href="#">
+                                    <img src="~/assets/img/avatar.png" class="user-avatar mb-2" alt="User" style="width: 50px; height: 50px;">
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="nav-item text-center">
+                                <form asp-action="Logout" asp-controller="Account" method="post" style="display:inline;">
+                                    <button type="submit" class="btn btn-ne">Đăng xuất</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                }
+            </ul>
+        </header>
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar">
+            <div class="dashboard-container">
+                <a href="@Url.Action("Home", "Home", new { area = "" })">
+                    <img src="~/assets/img/smartFA.png" style="width:48px; height:48px;" class="logo" />
+                </a>
+                <span class="spanTitle" style="font-size: 1.0rem; font-weight: bold;">SMART FA</span>
+                @*<div class="fixed-checkbox">
+                    <input type="checkbox" id="toggleSidebarFixed" title="Giữ cố định" />
+                    <label for="toggleSidebarFixed"><i class="fas fa-thumbtack"></i></label>
+                </div>*@
+                <span><input type="checkbox" id="toggleSidebarFixed" title="" /></span>
+            </div>
+            <nav class="nav flex-column">
+                <!-- Menu Items -->
+                <a href="@Url.Action("Home", "Home", new { area = "" })" class="nav-link @ViewContext.IsActive("Home", "Home")">
+                    <i class="fas fa-home"></i> <span>Trang chủ</span>
+                    </a>
+                <a href="@Url.Action("Index", "Home", new { area = "SmartFA" })" class="nav-link @ViewContext.IsActive("Home", "Index")"><i class=" fas fa-dashboard"></i> <span>Dashboard</span></a>
+                <a href="@Url.Action("Index", "Search", new { area = "SmartFA" })" class="nav-link  @ViewContext.IsActive("Search", "Index")"><i class="fas fa-search"></i> <span>Tìm kiếm</span></a>
+                @*<a href="@Url.Action("Index", "Handover", new { area = "SmartFA" })" class="nav-link  @ViewContext.IsActive("Handover", "Index")"><i class="fas fa-exchange-alt"></i> <span>Giao/Nhận bản</span></a>*@
+                <a href="@Url.Action("Index", "Analysis", new { area = "SmartFA" })" class="nav-link  @ViewContext.IsActive("Analysis", "Index")"><i class="fas fa-chart-bar"></i> <span>Phân tích</span></a>
+                <a href="@Url.Action("Index", "Report", new { area = "SmartFA" })" class="nav-link  @ViewContext.IsActive("Report", "Index")"><i class="fas fa-tasks"></i> <span>Báo Cáo</span></a>
+                <a href="@Url.Action("Index", "StatisticsBGA", new { area = "SmartFA" })" class="nav-link  @ViewContext.IsActive("StatisticsBGA", "Index")"><i class="fas fa-bug"></i> <span>DataBGA</span></a>
+@*                <a href="@Url.Action("Index", "CheckIn", new { area = "SmartFA" })" class="nav-link  @ViewContext.IsActive("CheckIn", "Index")"><i class="fas fa-check-circle"></i> <span>IO7CheckGuide</span></a>*@
+                <a href="@Url.Action("Index", "ReTestReport", new { area = "SmartFA" })" class="nav-link  @ViewContext.IsActive("ReTestReport", "Index")"><i class="fas fa-tasks"></i> <span>Retest Report</span></a>
+                <a href="@Url.Action("Index", "RepairOwner", new { area = "SmartFA" })" class="nav-link  @ViewContext.IsActive("ReTestReport", "Index")"><i class="fa fa-wrench"></i> <span>Repair Data</span></a>
+            </nav>
+        </div>
+
+        <main id="mainContent">
+            <!--SPINER-->
+            <div id="spinner-overlay">
+                <span class="loader"></span>
+            </div>
+            @RenderBody()
+        </main>
+    </div>
+    <style>
+        /* Đảm bảo cột và tiêu đề cố định hiển thị rõ ràng */
+        .table.dataTable thead tr > .dtfc-fixed-left {
+            background-color: #0c0c0c !important; /* Màu nền cho cột cố định */
+        }
+        /* Thêm hiệu ứng hover cho hàng */
+        .datatable-table tbody tr:hover td,
+        .datatable-table tbody tr:hover th {
+            background-color: #76b900 !important;
+            /*transition: background-color 0.2s ease;*/
+        }
+
+        /* (Tùy chọn) Giữ màu đặc biệt cho hàng auto-block khi hover */
+        .datatable-table tbody tr.auto-block:hover td,
+        .datatable-table tbody tr.auto-block:hover th {
+            background-color: #76b900 !important;
+            /*transition: background-color 0.2s ease;*/
+        }
+    </style>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="~/lib/datatable/jquery.datatables.min.js"></script>
+    <script src="~/lib/datatable/simple-datatables.js"></script>
+    <script src="~/lib/datatable/datatables.fixedcolumns.min.js"></script>
+    <script src="~/lib/sweetalert2/dist/sweetalert2.all.js"></script>
+    <script src="~/lib/select2/dist/js/select2.full.min.js"></script>
+    <script src="~/lib/excel/xlsx.full.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

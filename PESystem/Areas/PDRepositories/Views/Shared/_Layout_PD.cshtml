@@ -1,0 +1,97 @@
+﻿@using PESystem.Helpers
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDResponsive Sidebar</title>
+    <link rel="icon" href="~/assets/img/repoPD.png" type="image/png">
+    <link rel="stylesheet" href="~/css/site.min.css?v=@DateTime.Now.Ticks" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/all-fa-icon/css/all.min.css" />
+    <link rel="stylesheet" href="~/assets/areas/pdstock/css/pdstock.css?v=@DateTime.Now.Ticks" />
+    <script src="~/lib/gsap-particles/particles.min.js"></script>
+    <script src="~/lib/gsap-particles/gsap.min.js"></script>
+</head>
+<body>
+    <script>
+        (function () {
+            const isSidebarFixed = localStorage.getItem('isSidebarFixed') === 'true';
+            if (isSidebarFixed) {
+                document.documentElement.classList.add('sidebar-expanded');
+                document.write(`
+                            <style>
+                                #sidebar { width: 260px; }
+                                #sidebar .nav-link span, #sidebar .dashboard-container span { opacity: 1; }
+                                #mainContent { margin-left: 260px; }
+                                .header { left: 260px; width: calc(100% - 260px); }
+                            </style>
+                        `);
+            } else {
+                document.documentElement.classList.remove('sidebar-expanded');
+                document.write(`
+                            <style>
+                                 #sidebar { width: 70px; }
+                                #sidebar .nav-link span, #sidebar .dashboard-container span { opacity: 0; }
+                                #mainContent { margin-left: 70px; }
+                                .header { left: 70px; width: calc(100% - 70px); }
+                            </style>
+                        `);
+            }
+        })();
+    </script>
+    <header class="header d-flex justify-content-between align-items-center" id="header">
+        <div class="d-flex align-items-center">
+            <span class="input-group-text bg-transparent border-0" onclick="toggleSearch()">
+                <i class="fas fa-search" style="cursor: pointer;"></i>
+            </span>
+            <div class="search-container" id="searchContainer">
+                <input type="text" class="form-control" placeholder="Search...">
+            </div>
+        </div>
+        <ul class="d-flex align-items-center">
+            @if (User.Identity.IsAuthenticated)
+            {
+                <li class="nav-item dropdown">
+                    <a class="nav-link d-flex align-items-center avatar-link" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="~/assets/img/avatar.png" class="user-avatar" alt="User" style="width: 40px; height: 40px;">
+                        <span class="d-none d-md-block ps-2">@User.Identity.Name</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </header>
+
+
+    <!-- Sidebar dọc -->
+    <div id="sidebar" class="sidebar">
+        <!-- Logo and Dashboard with fixed checkbox -->
+        <div class="dashboard-container">
+            <a href="@Url.Action("Home", "Home", new { area = "" })">
+                <img src="~/assets/img/repoPD.png" style="width:48px; height:48px;" class="logo" />
+            </a>
+            <span class="spanTitle" style="font-size: 0.8rem; font-weight: bold;">
+                PD REPOSITORY
+            </span>
+            <span><input type="checkbox" id="toggleSidebarFixed" title="" /></span>
+        </div>
+        <nav class="nav flex-column">
+            <!-- Menu Items -->
+            <a href="@Url.Action("Home", "Home", new { area = "" })" class="nav-link"><i class="fas fa-home"></i> <span>Trang chủ</span></a>
+            <a href="@Url.Action("Index", "Home", new { area = "PDRepositories" })" class="nav-link  @ViewContext.IsActive("Home", "Index")"><i class="fas fa-dashboard"></i> <span>Dashboard</span></a>
+            <a href="@Url.Action("Index", "SearchProduct", new { area = "PDRepositories" })" class="nav-link  @ViewContext.IsActive("SearchProduct", "Index")"><i class="fas fa-search"></i> <span>Tìm kiếm</span></a>
+            <a href="@Url.Action("Index", "AddProduct", new { area = "PDRepositories" })" class="nav-link  @ViewContext.IsActive("AddProduct", "Index")"><i class="fas fa-file-import"></i> <span>Nhập kho</span></a>
+            <a href="@Url.Action("Index", "OutProduct", new { area = "PDRepositories" })" class="nav-link  @ViewContext.IsActive("OutProduct", "Index")"><i class="fas fa-file-import"></i> <span>Xuất kho</span></a>
+
+        </nav>
+    </div>
+
+    @RenderBody()
+    <script src="~/js/site.min.js" asp-append-version="true"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="~/assets/areas/pdstock/js/pdrepository.js"></script>
+    <script src="~/lib/excel/xlsx.full.min.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

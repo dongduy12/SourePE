@@ -1,0 +1,52 @@
+﻿@{
+    ViewData["Title"] = "PDRepository";
+}
+@{
+    Layout = "~/Areas/PDRepositories/Views/Shared/_Layout_PD.cshtml";
+}
+
+<main id="mainContent">
+    <section class="section dashboard">
+
+        <div class="PdStock-search-container d-flex gap-3">
+            <!-- Dropdown and Actions -->
+            <div class="d-flex flex-column align-items-start gap-0.5">
+                <!-- chon option -->
+                <select id="search-options" class="form-select">
+                    <option selected>TÌM KIẾM</option>
+                    <option value="add-with-cartonNO">Nhập kho với mã CARTON</option>
+                    <option value="add-with-SN">Nhập kho với mã SN</option>
+                </select>
+                <input type="text"
+                       id="PdStock-location"
+                       class="form-control"
+                       placeholder="Nhập vị trí">
+                <!-- Add Button -->
+                <button id="PdStock-add-btn" class="btn btn-primary mt-2">
+                    <i class="fas fa-search"></i> Nhập kho
+                </button>
+
+                <!-- Data Quantity -->
+                <p id="Data-search-qty" style="color: black; font-size: 16px;">Tổng số kết quả: 0</p>
+            </div>
+
+            <!-- Textarea -->
+            <textarea name="PD-repo-add"
+                      id="PD-repo-add-input"
+                      class="form-control"
+                      rows="2"
+                      placeholder=" List CARTON_NO/SN"></textarea>
+        </div>
+
+
+        <div>
+            <!--HIEN THI BANG TIM KIEM-->
+            <div id="PDStock-search-results-section" style="overflow: auto;"></div>
+        </div>
+
+    </section>
+</main>
+
+@section Scripts {
+    <script src="~/assets/areas/pdstock/js/pdstockadd.js"></script>
+}

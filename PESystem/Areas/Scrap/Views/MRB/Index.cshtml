@@ -1,0 +1,164 @@
+﻿@{
+    ViewData["Title"] = "Chuyển kho MRB";
+}
+@{
+    Layout = "~/Areas/Scrap/views/Shared/Layout_scrap.cshtml";
+}
+
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<div class="row mb-3">
+    <!-- Cột chọn loại chức năng -->
+    <div class="col-md-3">
+        <form id="search-form" class="form-inline">
+            <select id="search-mrb-options" class="form-select">
+                <option selected disabled>SELECT FUNCTION</option>
+                <option value="5">Chờ RE chuyển MRB</option>
+                <option value="6">Chờ kho MRB xác nhận</option>
+                <option value="7">Đã vào kho MRB</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- function area-->
+    <div class="col-md-9">
+        <!-- Form Chờ RE chuyển MRB -->
+        <form id="wait-re-move-mrb" method="post" class="hidden" data-search-type="wait-re-move-mrb">
+            <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
+                <div class="col-md-3">
+                    @{
+                        var allowedAreas = HttpContextAccessor.HttpContext.User.Claims
+                        .FirstOrDefault(c => c.Type == "AllowedAreas")?.Value.Split(',');
+                        var Scrap = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "Scrap");
+                    }
+                    @if (Scrap)
+                    {
+                        <button id="move-mrb-btn" class="btn btn-ne" type="button">Move MRB</button>
+                    }else
+                    {
+                        <button id="move-mrb-btn" class="btn btn-ne hidden" type="button">Move MRB</button>
+                    }
+                </div>
+            </div>
+        </form>
+
+        <!-- Form Chờ kho MRB xác nhận -->
+        <form id="wait-mrb-confirm" method="post" class="hidden" data-search-type="wait-mrb-confirm">
+            <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
+                <div class="col-md-3">
+                    
+                    @{
+                        var allowedAreas1 = HttpContextAccessor.HttpContext.User.Claims
+                        .FirstOrDefault(c => c.Type == "AllowedAreas")?.Value.Split(',');
+                        var Mrb = allowedAreas1 != null && allowedAreas1.Any(area => area.Trim() == "Mrb");
+                    }
+                    @if (Mrb)
+                    {
+                        <button id="confirm-mrb-btn" class="btn btn-ne" type="button">Confirm</button>
+                    }else
+                    {
+                        <button id="confirm-mrb-btn" class="btn btn-ne hidden" type="button">Confirm</button>
+                    }
+                </div>
+            </div>
+        </form>
+
+        <!-- Form Đã vào kho MRB -->
+        <form id="moved-mrb-form" method="post" class="hidden" data-search-type="moved-mrb">
+            <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
+                <div class="col-md-3">
+                    <button id="moved-mrb-btn" class="btn btn-ne" type="button">Load data</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!--khu vực hiển thị chi tiết-->
+<div class="row mb-3">
+    <!--hiển thị của chức năng Chờ RE chuyển MRB-->
+    <div id="wait-re-move-mrb-result" class="hidden">
+        <table id="wait-re-move-mrb-table" class="mt-2 table table-bordered table-striped datatable-table" style="width:100%">
+            <thead>
+                <tr>
+                    <th class="checkbox-column"><input type="checkbox" id="select-all-5"></th>
+                    <th>Task Number</th>
+                    <th>Apply Time</th>
+                    <th>Total Qty</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <!--hiển thị của chức năng Chờ kho MRB xác nhận-->
+    <div id="wait-mrb-confirm-result" class="hidden">
+        <table id="wait-mrb-confirm-table" class="mt-2 table table-bordered table-striped datatable-table" style="width:100%">
+            <thead>
+                <tr>
+                    <th class="checkbox-column"><input type="checkbox" id="select-all-6"></th>
+                    <th>Task Number</th>
+                    <th>Apply Time</th>
+                    <th>Total Qty</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <!--hiển thị của chức năng Đã vào kho MRB-->
+    <div id="moved-mrb-form-result" class="hidden">
+        <table id="moved-mrb-form-table" class="mt-2 table table-bordered table-striped datatable-table" style="width:100%">
+            <thead>
+                <tr>
+                    <th class="checkbox-column"><input type="checkbox" id="select-all-7"></th>
+                    <th>Task Number</th>
+                    <th>Apply Time</th>
+                    <th>Total Qty</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .hidden {
+            display: none !important; /* Đảm bảo ẩn hoàn toàn */
+        }
+
+        /* Định dạng checkbox */
+        .checkbox-column {
+            width: 20px!important; /* Đảm bảo cột checkbox không quá hẹp */
+            text-align: center !important;
+        }
+        /* Giới hạn độ rộng cột */
+        #task-checkbox-table th, #task-checkbox-table td {
+            white-space: nowrap; /* Ngăn xuống dòng */
+            overflow: hidden;
+            text-align: center;
+            text-overflow: ellipsis; /* Hiển thị dấu "..." nếu nội dung quá dài */
+            max-width: 80px!important; /* Giới hạn độ rộng cột */
+        }
+
+        /* Giới hạn độ rộng cột */
+        #history-task-checkbox-table th, #history-task-checkbox-table td {
+            white-space: nowrap; /* Ngăn xuống dòng */
+            overflow: hidden;
+            text-align: center;
+            text-overflow: ellipsis; /* Hiển thị dấu "..." nếu nội dung quá dài */
+            max-width: 80px!important; /* Giới hạn độ rộng cột */
+        }
+        #history-task-checkbox-table td, #task-checkbox-table td{
+            background-color:#fff;
+        }
+
+         /* Thêm hiệu ứng hover cho hàng */
+        .datatable-table tbody tr:hover td,
+        .datatable-table tbody tr:hover th {
+            background-color: #76b900 !important;
+            /*transition: background-color 0.2s ease;*/
+        }
+    </style>
+    <script src="~/assets/areas/scrap/js/mrb.js?v=@DateTime.Now.Ticks"></script>
+}

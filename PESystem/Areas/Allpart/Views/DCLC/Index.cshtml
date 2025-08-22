@@ -1,0 +1,231 @@
+﻿@{
+    ViewData["Title"] = "Allpart DC-LC";
+}
+@{
+    Layout = "~/Areas/Allpart/Views/Shared/layout_allpart.cshtml";
+}
+
+<link href="~/assets/css/dclc.css" rel="stylesheet" />
+
+<div class="card shadow-sm">
+    <div class="card-header bg-nvidia-green text-white">
+        <h1 class="h4 mb-0 text-center">Tìm Kiếm Thông Tin Linh Kiện</h1>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-4 align-items-center">
+            <div class="col-md-4">
+                <textarea id="serialNumber" class="form-control" rows="3" placeholder="Nhập SerialNumber (mỗi dòng một giá trị)"></textarea>
+            </div>
+            <div class="col-md-4">
+                <textarea id="refDes" class="form-control" rows="3" placeholder="Nhập vị trí (mỗi dòng một giá trị)..."></textarea>
+            </div>
+            <div class="col-md-2">
+                <button onclick="search()" class="btn btn-nvidia-green w-100">Tìm kiếm</button>
+            </div>
+            <div class="col-md-2">
+                <button onclick="downloadExcel()" class="btn btn-nvidia-green w-100">Tải xuống Excel</button>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <div class="table-responsive align-items-center">
+                <table id="dcLcTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>P_SN</th>
+                            <th>MODEL_NAME</th>
+                            <th>MÃ_LIỆU</th>
+                            <th>VENDOR_CODE</th>
+                            <th>VENDOR_NAME</th>
+                            <th>REF_DES</th>
+                            <th>DATE_CODE</th>
+                            <th>LOT_CODE</th>
+                            <th>PROCESS_FLAG</th>
+                            <th>STATION</th>
+                            <th>GROUP_NAME</th>
+                            <th>WORK_TIME</th>
+                            <th>WO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dcLcTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let dcLcTable;
+
+        function createTooltipCell(data) {
+            return `<span class="tooltip-trigger" data-tooltip="${data || ''}">${data || ''}</span>`;
+        }
+
+        function attachTooltipEvents() {
+            $(document).on('mouseover', '.tooltip-trigger', function (e) {
+                const $this = $(this);
+                const tooltipText = $this.data('tooltip');
+                if (tooltipText) {
+                    let tooltip = document.querySelector('.custom-tooltip');
+                    if (!tooltip) {
+                        tooltip = document.createElement('div');
+                        tooltip.className = 'custom-tooltip';
+                        document.body.appendChild(tooltip);
+                    }
+                    tooltip.textContent = tooltipText;
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.pageX + 10) + 'px';
+                    tooltip.style.top = (e.pageY - 20) + 'px';
+                }
+            }).on('mousemove', '.tooltip-trigger', function (e) {
+                const tooltip = document.querySelector('.custom-tooltip');
+                if (tooltip && tooltip.style.display === 'block') {
+                    tooltip.style.left = (e.pageX + 10) + 'px';
+                    tooltip.style.top = (e.pageY - 20) + 'px';
+                }
+            }).on('mouseout', '.tooltip-trigger', function () {
+                const tooltip = document.querySelector('.custom-tooltip');
+                if (tooltip) {
+                    tooltip.style.display = 'none';
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            dcLcTable = $('#dcLcTable').DataTable({
+                pageLength: 10,
+                scrollX: true,
+                responsive: true,
+                columnDefs: [
+                    { targets: '_all', width: '150px' }
+                ]
+            });
+
+            attachTooltipEvents();
+        });
+
+        async function search() {
+            const serialNumberText = document.getElementById('serialNumber').value.trim();
+            const refDesText = document.getElementById('refDes').value.trim();
+
+            const serialNumbers = serialNumberText.split('\n').filter(s => s);
+            const refDesValues = refDesText.split('\n').filter(r => r);
+
+            if (serialNumbers.length === 0 || refDesValues.length === 0) {
+                alert('Vui lòng nhập đầy đủ Serial Number và Reference Designator (ít nhất một giá trị mỗi ô)!');
+                return;
+            }
+
+            const var2 = refDesValues.join(';');
+
+            dcLcTable.clear();
+
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.innerHTML = `
+                        <div class="spinner"></div>
+                        <div>Đang tải dữ liệu, vui lòng chờ...</div>
+                    `;
+            document.body.appendChild(loadingOverlay);
+
+            try {
+                const batchSize = 50;
+                let allResults = [];
+
+                for (let i = 0; i < serialNumbers.length; i += batchSize) {
+                    const batch = serialNumbers.slice(i, i + batchSize);
+                    const var1 = batch.join(';');
+
+                    const dcLcResponse = await fetch('http://10.220.130.119:9090/api/RepairStatus/info-allpart/with-refdes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            type: 'GET_DC_LC',
+                            item: 'BY-RE-SN',
+                            var_1: var1,
+                            var_2: var2
+                        })
+                    });
+
+                    if (!dcLcResponse.ok) {
+                        const errorText = await dcLcResponse.text();
+                        throw new Error(`Lỗi khi gọi API GET_DC_LC: ${dcLcResponse.status} - ${errorText}`);
+                    }
+
+                    const dcLcData = await dcLcResponse.json();
+
+                    if (dcLcData && dcLcData.result && dcLcData.result.length > 0) {
+                        allResults = allResults.concat(dcLcData.result);
+                    }
+                }
+
+                if (allResults.length === 0) {
+                    alert('Không tìm thấy dữ liệu hợp lệ từ API!');
+                    document.body.removeChild(loadingOverlay);
+                    return;
+                }
+
+                allResults.forEach(item => {
+                    dcLcTable.row.add([
+                        createTooltipCell(item.p_sn),
+                        createTooltipCell(item.p_no),
+                        createTooltipCell(item.kp_no),
+                        createTooltipCell(item.mfr_kp_no),
+                        createTooltipCell(item.mfr_name),
+                        createTooltipCell(item.ref_des),
+                        createTooltipCell(item.date_code),
+                        createTooltipCell(item.lot_code),
+                        createTooltipCell(item.process_flag),
+                        createTooltipCell(item.station),
+                        createTooltipCell(item.group_name),
+                        createTooltipCell(item.work_time),
+                        createTooltipCell(item.wo)
+                    ]).draw();
+                });
+
+                attachTooltipEvents();
+
+            } catch (error) {
+                alert(`Đã xảy ra lỗi: ${error.message}`);
+            } finally {
+                document.body.removeChild(loadingOverlay);
+            }
+        }
+
+        function downloadExcel() {
+            const allData = dcLcTable.rows().data().toArray();
+
+            const excelData = [
+                ['P_SN', 'MODEL_NAME', 'MÃ_LIỆU', 'VENDOR_CODE', 'VENDOR_NAME', 'REF_DES', 'DATE_CODE', 'LOT_CODE', 'PROCESS_FLAG', 'STATION', 'GROUP_NAME', 'WORK_TIME', 'WO']
+            ];
+
+            allData.forEach(row => {
+                const rowData = Array.from(row).map(cell => {
+                    const div = document.createElement('div');
+                    div.innerHTML = cell;
+                    return div.textContent || '';
+                });
+                excelData.push(rowData);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data_dclc_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+}

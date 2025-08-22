@@ -1,0 +1,134 @@
+﻿@{
+    ViewData["Title"] = "SmartFA Area";
+}
+@{
+    Layout = "~/Areas/SmartFA/Views/Shared/_Layout_SmartFA.cshtml";
+}
+<section class="section">
+    <div class="container">
+        <!-- Form nhập SN -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <!-- Ô nhập -->
+            <div id="sn-form" class="col-md-2">
+                <input type="text" id="serialNumber" class="form-control" placeholder="Nhập Serial Number" required>
+            </div>
+            <!-- Upload File -->
+            <div class="row" style="margin-left: auto;">
+                <div class="col-md-6">
+                    <input type="file" id="guideFile" accept=".xlsx" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <select id="productLineDropdown" class="form-control col-md-3">
+                        <option value="">Chọn ProductLine</option>
+                        <!-- Các ProductLine sẽ được thêm ở đây -->
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button type="button" id="addGuideButton" class="btn btn-ne">Add Guide</button>
+                </div>
+            </div>
+
+        </div>
+        <style>
+            .datatable-table th, .datatable-table td {
+                width: 120px !important; /**/
+            }
+        </style>
+
+        <!-- Bảng hiển thị danh sách SN -->
+        <div class="datatable-wrapper">
+            <div class="datatable-container">
+                <table id="sn-table" class="datatable-table table table-bordered mt-2">
+                    <thead>
+                        <tr>
+                            <th>SerialNumber</th>
+                            <th>ProductLine</th>
+                            <th>ModelName</th>
+                            <th>WIP</th>
+                            <th>TestCode</th>
+                            <th>TestGroup</th>
+                            <th>Data1</th>
+                            <th>CheckPoint</th>
+                            <th>Hướng dẫn</th>
+                            <th>HandoverStatus</th>
+                            <th>Owner</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body">
+                        <!-- Các hàng sẽ được thêm ở đây -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Bảng hiển thị lịch sử sửa chữa -->
+        <div class="datatable-wrapper mt-3">
+            <div class="datatable-container">
+                <h5>Lịch sử sửa chữa:</h5>
+                <table id="history-table" class="datatable-table table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Thời gian</th>
+                            <th>Data1</th>
+                            <th>Người sửa</th>
+                            <th>Chi tiết sửa</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Các hàng sẽ được thêm từ JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Form nhập thông tin sửa chữa -->
+        <div class="mt-3">
+            <h5>Nhập thông tin sửa chữa:</h5>
+            <form id="repair-form">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" id="repairDescription" class="form-control" placeholder="Mô tả (Ghi rõ những vị trí đã sửa)" required />
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" id="repairNote" class="form-control" placeholder="Ghi chú" required />
+                    </div>
+                    <input type="hidden" id="repairPerson" value="@User.Identity.Name" />
+                </div>
+                <button type="submit" class="btn btn-ne">Lưu</button>
+            </form>
+        </div>
+
+
+        <div class="modal fade" id="repairDetailModal" tabindex="-1" aria-labelledby="repairDetailLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="repairDetailLabel">Tất cả bản lỗi cần xác định lỗi thật --> ngoại quan kỹ càng --> đo đạc không bất thường về trở kháng thì làm theo hướng dẫn khách hàng</h5>
+                        <button type="button" class="btn-ne btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Serial Number:</strong> <span id="modal-sn"></span></p>
+                        <p><strong>Model:</strong> <span id="modal-model"></span></p>
+                        <p><strong>Product Line:</strong> <span id="modal-product-line"></span></p>
+                        <p><strong>CheckPoints:</strong></p>
+                        <ul id="modal-checkpoints"></ul>
+                        <p><strong>Hướng dẫn chi tiết:</strong></p>
+                        <p id="modal-repair-detail"></p>
+                        <div class="product-line-pdf">
+                            <iframe id="modal-product-line-pdf" src="" style="width: 100%; height: 500px; border: none;"></iframe>
+                        </div>
+                    </div>
+
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-ne" data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+
+    </div>
+    <script src="~/assets/areas/smartfa/js/guide.js"></script>
+</section>

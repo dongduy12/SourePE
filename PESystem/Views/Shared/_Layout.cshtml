@@ -1,0 +1,99 @@
+﻿@using PESystem.Helpers
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PE System</title>
+    <link rel="icon" href="~/assets/img/logo.jpg" type="image/jpg">
+    <link href="~/css/site.min.css" rel="stylesheet" />
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/lib/all-fa-icon/css/all.min.css" rel="stylesheet" />
+
+</head>
+<body>
+    <!-- Áp dụng trạng thái ban đầu từ localStorage -->
+    <script>
+        (function () {
+            const isSidebarFixed = localStorage.getItem('isSidebarFixed') === 'true';
+            if (isSidebarFixed) {
+                document.documentElement.classList.add('sidebar-expanded');
+            } else {
+                document.documentElement.classList.remove('sidebar-expanded');
+            }
+        })();
+    </script>
+
+    <div class="layout">
+        <header class="header d-flex justify-content-between align-items-center" id="header">
+            <div class="d-flex align-items-center">
+                <button class="btn btn-link text-decoration-none d-md-none me-2" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="input-group-text bg-transparent border-0" onclick="toggleSearch()">
+                    <i class="fas fa-search" style="cursor: pointer;"></i>
+                </span>
+                <div class="search-container" id="searchContainer" style="display: none;">
+                    <input type="text" class="form-control" placeholder="Search...">
+                </div>
+            </div>
+            <ul class="d-flex align-items-center list-unstyled m-0">
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <li class="nav-item dropdown">
+                        <a class="nav-link d-flex align-items-center avatar-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="~/assets/img/avatar.png" class="user-avatar" alt="User" style="width: 40px; height: 40px;">
+                            <span class="d-none d-md-block ps-2">@User.FindFirst("FullName")?.Value</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li class="dropdown-header text-center">
+                                <h6>@User.FindFirst("FullName")?.Value</h6>
+                                <small>@User.FindFirst("Email")?.Value</small>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="nav-item text-center">
+                                <a class="dropdown-item" asp-action="ChangePassword" asp-controller="Account">Change Password</a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="nav-item text-center">
+                                <form asp-action="Logout" asp-controller="Account" method="post" style="display:inline;">
+                                    <button type="submit" class="btn btn-ne">Đăng xuất</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                }
+            </ul>
+        </header>
+        <div id="sidebar" class="sidebar">
+            <div class="dashboard-container">
+                <a href="@Url.Action("Home", "Home")" class="text-decoration-none">
+                    <img src="~/assets/img/logo.jpg" class="logo" alt="Logo" />
+                </a>
+                <span class="spanTitle">PE SYSTEM</span>
+                <span><input type="checkbox" id="toggleSidebarFixed" title="Giữ cố định" /></span>
+            </div>
+            <nav class="nav flex-column">
+                <a href="@Url.Action("Home", "Home")" class="nav-link @ViewContext.IsActive("Home", "Home")">
+                    <i class="fas fa-home"></i> <span>Trang chủ</span>
+                </a>
+                <a href="@Url.Action("Index", "AdminView")" class="nav-link @ViewContext.IsActive("AdminView", "Index")">
+                    <i class="fas fa-cog"></i> <span>Cài đặt</span>
+                </a>
+            </nav>
+        </div>
+        <main id="mainContent">
+            <div id="spinner-overlay">
+                <span class="loader"></span>
+            </div>
+            @RenderBody()
+        </main>
+    </div>
+
+
+    <script src="~/js/site.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/all-fa-icon/js/all.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

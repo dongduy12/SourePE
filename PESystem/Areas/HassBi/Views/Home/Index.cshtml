@@ -1,0 +1,130 @@
+﻿@{
+    ViewData["Title"] = "HassBi";
+}
+@{
+    Layout = "~/Areas/HassBi/Views/Shared/Layout_BiHass.cshtml";
+}
+<style>
+    /* Custom styles for DataTables */
+    #hassBiTable {
+        table-layout: fixed; /* Đảm bảo các cột có chiều rộng cố định và đồng đều */
+        width: 100%; /* Bảng chiếm toàn bộ chiều rộng của container */
+    }
+
+        #hassBiTable thead {
+            background-color: #1a1f2e;
+            color: white; /* White text for header */
+            font-size: 18px; /* Larger font size for header */
+        }
+
+        #hassBiTable tbody tr:nth-child(even) {
+            background-color: #f2f2f2; /* Light gray for even rows */
+        }
+
+        #hassBiTable tbody tr:nth-child(odd) {
+            background-color: #ffffff; /* White for odd rows */
+        }
+
+        #hassBiTable tbody tr:hover {
+            background-color: #ddd; /* Hover effect */
+        }
+
+        #hassBiTable th, #hassBiTable td {
+            border: 1px solid #ddd; /* Border for cells */
+            padding: 8px; /* Padding for cells */
+            text-align: center; /* Center-align text */
+            font-size: 16px; /* Larger font size for table content */
+            width: calc(100% / 7); /* Chia đều chiều rộng cho 7 cột */
+            overflow: hidden; /* Ẩn nội dung tràn */
+            text-overflow: ellipsis; /* Thêm dấu ba chấm nếu nội dung quá dài */
+            white-space: nowrap; /* Ngăn nội dung xuống dòng */
+        }
+
+    /* Larger font size for labels */
+    label {
+        font-size: 16px;
+    }
+
+    /* Larger font size for buttons */
+    #loadDataBtn {
+        font-size: 16px;
+    }
+
+    /* Adjust DataTables elements (pagination, search, etc.) */
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate,
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select {
+        font-size: 14px;
+    }
+
+    #exportExcelBtn {
+        padding-left: 5px;
+        transition: transform 0.2s ease;
+    }
+
+        #exportExcelBtn:hover {
+            transform: scale(1.2);
+        }
+
+
+    /* Spinner styles */
+    #spinner-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+</style>
+
+<div class="mt-3">
+    <h2>DỮ LIỆU MO LÊN CHUYỀN THEO THỜI GIAN</h2>
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label for="startDate">Start Date:</label>
+            <input type="datetime-local" id="startDate" class="form-control" />
+        </div>
+        <div class="col-md-4">
+            <label for="endDate">End Date:</label>
+            <input type="datetime-local" id="endDate" class="form-control" />
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button id="loadDataBtn" class="btn btn-ne">Search</button>
+            <img id="exportExcelBtn" src="~/assets/img/excel.png" alt="Excel Icon" style="width: 48px;" title="Xuất Excel">
+        </div>
+    </div>
+    <div class="row">
+        <table id="hassBiTable" class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>MO_NUMBER</th>
+                    <th>MODEL_NAME</th>
+                    <th>IN_STATION_TIME</th>
+                    <th>TARGET_QTY</th>
+                    <th>BI_HASS</th>
+                    <th>SKIP_REASON</th>
+                    <th>TYPE</th>
+                    <th>LOT_SIZE_MIN</th>
+                    <th>LOT_SIZE_MAX</th>
+                    <th>KEY_PART_NO</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/assets/areas/hassbi/js/report.js?v=@DateTime.Now.Ticks"></script>
+}

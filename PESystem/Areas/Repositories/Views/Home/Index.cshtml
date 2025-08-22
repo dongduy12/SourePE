@@ -1,0 +1,413 @@
+﻿@{
+    ViewData["Title"] = "Repository";
+}
+@{
+    Layout = "~/Areas/Repositories/Views/Shared/_Layout_Repo.cshtml";
+}
+<section class="section dashboard">
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">📦KHO</h4>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <h4 id="total-stock" class="mb-0 text-primary fw-bold">Loading...</h4>
+                        <img id="export-all-btn" src="~/assets/img/excel.png" alt="Excel Icon" class="excel-icon">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">KHO OK</h4>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <h4 id="kho-ok-count" class="mb-0 text-primary fw-bold">Loading...</h4>
+                        <img id="export-kho-ok-btn" src="~/assets/img/excel.png" alt="Excel Icon" class="excel-icon">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">KHO PHẾ</h4>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <h4 id="kho-scrap-count" class="mb-0 text-primary fw-bold">Loading...</h4>
+                        <img id="export-kho-scrap-btn" src="~/assets/img/excel.png" alt="Excel Icon" class="excel-icon">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">TỔNG CHECK IN</h4>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <h4 id="total-stock-re" class="mb-0 text-primary fw-bold">Loading...</h4>
+                        <img id="export-all-re-btn" src="~/assets/img/excel.png" alt="Excel Icon" class="excel-icon">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card-body">
+                <input type="hidden" id="entryPerson" value="@User.Identity.Name" />
+                <div class="input-group">
+                    <textarea class="form-control" id="warehouse-sn-input" rows="3" placeholder="..." style="resize:none"></textarea>
+                    <button class="btn btn-primary" id="warehouse-search-btn" type="button">Search</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">ĐANG MƯỢN</h4>
+                    <h4 id="borrowed-count" class="mb-0 text-primary fw-bold">Loading...</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h4 class="card-title fw-bold mb-0">B36R STATUS</h4>
+                        <i class="fa fa-cogs" id="b36r-settings" style="cursor: pointer;"></i>
+                    </div>
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <input type="datetime-local" id="b36r-start-date" class="form-control form-control-sm" />
+                        <input type="datetime-local" id="b36r-end-date" class="form-control form-control-sm" />
+                        <button id="b36r-filter-btn" class="btn btn-sm btn-primary h-100">Filter</button>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div>
+                            <span class="mb-0 text-primary fw-bold" style="color:#000!important;">Đã link</span>
+                            <span id="totaL-linked-mo" class="mb-0 text-primary fw-bold clickable" style="cursor: pointer;">Loading...</span>
+                        </div>
+                        <div>
+                            <span class="mb-0 text-primary fw-bold" style="color:#000!important;">Chờ link</span>
+                            <span id="total-waiting-link-mo" class="mb-0 text-primary fw-bold clickable" style="cursor: pointer;">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal kết quả tìm kiếm kho -->
+    <div class="modal fade" id="warehouseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Kết quả tìm kiếm kho</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table id="warehouseTable" class="table table-bordered table-striped" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>SERIAL_NUMBER</th>
+                                <th>KHO</th>
+                                <th>KỆ</th>
+                                <th>CỘT</th>
+                                <th>TẦNG</th>
+                                <th>KHAY</th>
+                                <th>Ô</th>
+                                <th>PRODUCT_LINE</th>
+                                <th>MODEL_NAME</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" id="create-list-btn" type="button" style="display:none;">Create List</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal để hiển thị DataTable -->
+    <div class="modal fade" id="dataModal" tabindex="-1" aria-labelledby="dataModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataModalLabel">Chi tiết</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table id="dataTable" class="table table-bordered datatable-table table-striped" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>SERIAL_NUMBER</th>
+                                <th>PRODUCT_LINE</th>
+                                <th>MODEL_NAME</th>
+                                <th>EXPORT_DATE</th>
+                                <th>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal quản lý Export -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">B36R EXPORT</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="export-search-input" placeholder="Serial Number">
+                        <button class="btn btn-outline-secondary" id="export-search-btn" type="button">Search</button>
+                    </div>
+                    <table id="exportTable" class="table table-bordered table-striped" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>SERIAL_NUMBER</th>
+                                <th>PRODUCT_LINE</th>
+                                <th>MODEL_NAME</th>
+                                <th>EXPORT_DATE</th>
+                                <th>ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .swal2-input {
+            z-index: 2000 !important;
+        }
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 280px; /* Giới hạn chiều rộng */
+            margin-bottom: 10px; /* Căn giữa */
+        }
+
+        .card-title {
+            font-size: 20px; /* Giảm kích thước tiêu đề */
+            color: #333;
+        }
+
+        #total-stock {
+            font-size: 30px; /* Điều chỉnh kích thước số */
+            color: #007bff;
+        }
+
+        #total-stock-re {
+            font-size: 30px; /* Điều chỉnh kích thước số */
+            color: #007bff !important;
+        }
+
+        .excel-icon {
+            width: 35px; /* Thu nhỏ icon */
+            height: 35px;
+            transition: transform 0.2s ease-in-out;
+        }
+
+            .excel-icon:hover {
+                transform: scale(1.1);
+            }
+
+        .card {
+            border-radius: 15px; /* Bo tròn card */
+            overflow: hidden;
+            background: #fff;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .card-body {
+            border-radius: 15px; /* Bo tròn card-body */
+            background: linear-gradient(145deg, #ffffff, #e6e6e6); /* Tạo hiệu ứng nổi */
+            box-shadow: 5px 5px 15px #c1c1c1, -5px -5px 15px #ffffff; /* Hiệu ứng đổ bóng */
+            padding: 20px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px); /* Tạo hiệu ứng hover nâng khối */
+            box-shadow: 10px 10px 20px #c1c1c1, -10px -10px 20px #ffffff;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        /* Định dạng nút Export to Excel chỉ hiển thị hình ảnh */
+        .dt-button.excel-button {
+            padding: 0 5px 0 0;
+            border: none !important;
+            background: none !important;
+            background-color: none !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+            .dt-button.excel-button img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain; /* Đảm bảo ảnh không bị méo */
+            }
+
+            .dt-button.excel-button:hover img {
+                opacity: 0.8; /* Hiệu ứng mờ khi hover */
+            }
+
+    </style>
+
+    <div class="row d-flex flex-wrap">
+        <!-- Biểu đồ Số lượng vào/ra -->
+        <div class="col-md-6">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title text-center font-weight-bold">NHẬP XUẤT</h5>
+                        <select id="chart-filter" class="form-select w-auto">
+                            <option value="day" selected>Ngày</option>
+                            <option value="shift1">Ca 1</option>
+                            <option value="shift2">Ca 2</option>
+                        </select>
+                    </div>
+                    <div id="reportsChart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Biểu đồ TOP MODEL -->
+        <div class="col-md-6">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-center font-weight-bold">TOP MODEL</h5>
+                    <div id="top-model-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row d-flex flex-wrap mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-center font-weight-bold">MƯỢN/TRẢ TRONG NGÀY</h5>
+                    <div id="borrow-return-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-center font-weight-bold">AGING MƯỢN</h5>
+                    <div id="borrow-aging-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<style>
+    .modal-dialog {
+        max-width: 85%;
+        font-size: 14px;
+    }
+</style>
+<!-- Modal hiển thị thông tin Model -->
+<div class="modal fade" id="modelDataModal" tabindex="-1" aria-labelledby="modelDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modelDataModalLabel">DANH SÁCH SERIALNUMBER</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body table-responsive">
+                <table id="model-data-table" class="table table-bordered datatable-table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Serial Number</th>
+                            <th>Product Line</th>
+                            <th>Model Name</th>
+                            <th>Mo Number</th>
+                            <th>WIP Group</th>
+                            <th>Test Group</th>
+                            <th>ReasonCode</th>
+                            <th class="data1">Data1</th>
+                            <th>Test Code</th>
+                            <th class="location">Kệ</th>
+                            <th class="location">Cột</th>
+                            <th class="location">Tầng</th>
+                            <th class="location">Khay</th>
+                            <th class="location">Ô</th>
+                            <th>Ngày nhập</th>
+                            <th>Người nhập</th>
+                            <th>Mượn</th>
+                            <th>Ngày mượn</th>
+                            <th>Người mượn</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div id="pagination-container" class="d-flex justify-content-center mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ne" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal hiển thị chi tiết mượn/trả -->
+<div class="modal fade" id="borrowDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">CHI TIẾT MƯỢN/TRẢ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body table-responsive">
+                <table id="borrow-detail-table" class="table table-bordered table-striped" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Serial Number</th>
+                            <th>Người mượn</th>
+                            <th>Thời gian mượn</th>
+                            <th>Thời gian trả</th>
+                            <th>Vị trí</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/assets/areas/repositories/js/dashboard.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/assets/areas/repositories/js/reportschart.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/assets/areas/repositories/js/borrowChart.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/assets/vendor/echarts/echarts.min.js"></script>
+    <!-- Thêm các thư viện DataTable và Buttons -->
+    <link href="~/lib/datatables.bootstrap5.min.css" rel="stylesheet" />
+    <link href="~/lib/buttons.bootstrap5.min.css" rel="stylesheet" />
+
+    <script src="~/lib/datatables.bootstrap5.min.js"></script>
+    <script src="~/lib/datatables.buttons.min.js"></script>
+    <script src="~/lib/buttons.bootstrap5.min.js"></script>
+    <script src="~/lib/jszip.min.js"></script>
+    <script src="~/lib/buttons.html5.min.js"></script>
+}

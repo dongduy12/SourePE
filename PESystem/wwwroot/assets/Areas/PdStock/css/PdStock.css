@@ -1,0 +1,59 @@
+﻿.PdStock-results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2px 0;
+    font-size: 12px;
+    text-align: left;
+}
+
+
+    .PdStock-results-table th,
+    .PdStock-results-table td {
+        border: 1px solid #ddd;
+        padding: 5px;
+        background-color: #f4f4f4;
+    }
+
+    .PdStock-results-table th {
+        background-color: #f4f4f4;
+        font-weight: bold;
+        position: sticky; /* Cố định tiêu đề */
+        top: 0; /* Vị trí trên cùng */
+        z-index: 2; /* Ưu tiên tiêu đề trên các nội dung khác */
+    }
+
+.data-alert {
+    font-size: 16px;
+    color: black;
+}
+
+.PdStock-search-container {
+    display: flex;
+    gap: 1.5rem; /* Space between dropdown-actions and textarea */
+}
+
+    .PdStock-search-container .btn {
+        width: 100%; /* Ensure buttons are full-width for better alignment */
+    }
+
+#PD-repo-seach-input,
+#PD-repo-add-input,
+#PD-repo-exprot-input{
+    width: 50%; /* Maintain textarea width at half the container width */
+    resize: none; /* Optional: Disable resizing */
+}
+
+#Data-search-qty {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+#PDStock-search-results-section {
+    overflow: auto; /* Kích hoạt thanh cuộn */
+    max-height: 500px; /* Đặt chiều cao tối đa của container */
+    /*border: 1px solid #ddd;  Đường viền bao quanh */
+}
+
+
+
+

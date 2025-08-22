@@ -1,0 +1,287 @@
+﻿@{
+    ViewData["Title"] = "KHO RE";
+}
+@{
+    Layout = "~/Areas/Repositories/Views/Shared/_Layout_Repo.cshtml";
+}
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var allowedAreas = HttpContextAccessor.HttpContext.User.Claims
+    .FirstOrDefault(c => c.Type == "AllowedAreas")?.Value.Split(',');
+
+    var canShow = allowedAreas != null && allowedAreas.Any(area => area.Trim() == "khoScrap");
+}
+
+<section class="section dashboard">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="info-card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">📦TỔNG KHO PHẾ</h4>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <h4 id="total-stock" class="mb-0 text-primary fw-bold">Loading...</h4>
+                        <img id="export-scrap-btn" src="~/assets/img/excel.png" alt="Excel Icon" class="excel-icon">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">SCRAP HAS TASK</h4>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <h4 id="total-scrap-has-task" class="mb-0 text-primary fw-bold">Loading...</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">SCRAP LACKS TASK</h4>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <h4 id="total-scrap-lacks-task" class="mb-0 text-primary fw-bold">Loading...</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">WAITING SCRAP</h4>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <h4 id="total-waiting-scrap" class="mb-0 text-primary fw-bold">Loading...</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+       @* <div class="col-md-3">
+            <div class="info-card">
+                <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">NO SCRAP</h4>
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <h4 id="total-no-scrap" class="mb-0 text-primary fw-bold">Loading...</h4>
+                    </div>
+                </div>
+            </div>
+        </div>*@
+    </div>
+
+    <div class="container-fluid mt-2">
+        <input type="hidden" id="entryPerson" value="@User.Identity.Name" />
+        <!-- Cột chọn loại tìm kiếm -->
+        <div class="col-md-2">
+            <form id="search-form" class="form-inline">
+                <select id="options-function" class="form-select">
+                    <option selected disabled>CHỌN CHỨC NĂNG</option>
+                    <option value="SEARCH_NE">TÌM KIẾM</option>
+                    @if (canShow)
+                    {
+                        <option value="IMPORT_NE">NHẬP XUẤT</option>
+                    }
+                </select>
+            </form>
+        </div>
+
+        <!-- Cột form nhập liệu -->
+        <div class="mt-1">
+            <!-- Form tìm kiếm SN -->
+            <form id="input-sn-form" method="post" class="hidden" data-search-type="SEARCH_NE">
+                <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
+                    <div class="col-md-4">
+                        <textarea name="serialNumbers" id="sn-input" class="form-control" rows="3" placeholder="Nhập Serial Number (mỗi dòng 1 SN)"></textarea>
+                    </div>
+                    <div class="col-md-2">
+                        <button id="submit-sn-btn" class="btn btn-ne" type="button">TÌM KIẾM</button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Form Nhập Xuất -->
+            <form id="import-export-form" method="post" class="hidden" data-search-type="IMPORT_NE">
+                <div id="option-list" class="mt-3 col-md-12">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <input name="location" class="location-field form-control" placeholder="Vị trí khay" />
+                        </div>
+                        <div class="col-md-2">
+                            <input id="shelf" name="shelf" class="shelf-field form-control" readonly placeholder="Kệ" />
+                        </div>
+                        <div class="col-md-2">
+                            <input id="column" name="column" class="column-select form-control" readonly placeholder="Cột" />
+                        </div>
+                        <div class="col-md-2">
+                            <input id="level" name="level" class="level-select form-control" readonly placeholder="Tầng" />
+                        </div>
+                        <div class="col-md-2">
+                            <input id="tray" name="tray" class="tray-select form-control" readonly placeholder="Khay" />
+                        </div>
+                    </div>
+
+                    <div class="overflow-auto mt-3">
+                        <div class="card-body">
+                            <div class="mt-2">
+                                <small id="serial-count" class="form-text text-muted">Tổng số serial đã nhập: 0/...</small>
+                                <small id="serial-limit-warning" class="text-muted form-text text-danger" style="display: none;">Khay đã đầy! Vui lòng nhập khay khác!!!</small>
+                                <small id="duplicate-warning" class="text-muted form-text text-danger" style="display: none;">Có serial bị trùng lặp!</small>
+                            </div>
+                            <div class="row">
+                                <table class="table table-bordered mt-2" style="width:75%">
+                                    <thead>
+                                        <tr>
+                                            <th class="fixed-column col-md-4">SERIA_NUMBER</th>
+                                            <th class="col-md-3">MODEL_NAME</th>
+                                            <th class="col-md-3">PRODUCT_LINE</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="serial-number-table">
+                                        <tr>
+                                            <td class="col-md-4">
+                                                <div>
+                                                    <textarea name="serialNumber" id="sn-import" class="serial-number-input form-control" rows="8" placeholder="Serial Number List"></textarea>
+                                                </div>
+                                            </td>
+                                            <td class="col-md-3"><textarea name="modelName" class="model-name-field form-control" rows="8" readonly></textarea></td>
+                                            <td class="col-md-3"><textarea name="productLine" class="product-line-field form-control" rows="8" readonly></textarea></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <table id="color-table" class="table table-bordered mt-2" style="width:25%">
+                                    <thead>
+                                        <tr>
+                                            <th>VỊ_TRÍ</th>
+                                            <th>SERIAL_NUMBER</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="serial-number-in-tray">
+                                        <!-- Dữ liệu sẽ được thêm vào đây -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="fixed-column d-flex col-md-3">
+                        <button id="entry-btn" type="button" class="btn btn-ne button-fixed-width flex-fill">NHẬP KHO</button>
+                        <button id="export-sn-btn" type="button" class="btn btn-ne">XUẤT KHO</button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Nút hành động -->
+        <div id="button-action" class="row mb-6 hidden">
+            <div class="col-md-6 d-flex justify-content-between align-items-center">
+                <button id="update-note-btn" type="button" class="btn btn-ne" disabled>Ghi chú</button>
+                <button id="borrow-btn" type="button" class="btn btn-ne" style="display:none;">Cho mượn</button>
+                <span id="total-results" class="alert btn-ne" style="margin-bottom: 0;">Kết quả: 0</span>
+            </div>
+        </div>
+        <!-- Bảng kết quả -->
+        <div id="search-results" class="mt-2" style="display: none;">
+            <img class="hidden" id="export-sn-excel-btn" src="~/assets/img/excel.png" alt="Excel Icon" style="width: 40px;" title="Xuất Excel (Tìm kiếm SN)">
+            <div class="datatable-wrapper">
+                <table class="datatable-table table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="checkbox-sn"><input type="checkbox" id="select-all-checkbox" /></th>
+                            <th>SERIAL_NUMBER</th>
+                            <th>MODEL_NAME</th>
+                            <th>MO_NUMBER</th>
+                            <th>WIP_GROUP</th>
+                            <th>TEST_GROUP</th>
+                            <th>REASON_CODE</th>
+                            <th>TEST_CODE</th>
+                            <th>ERROR_DESC</th>
+                            <th>SHELF</th>
+                            <th>COLUMN</th>
+                            <th>LEVEL</th>
+                            <th>TRAY</th>
+                            <th>POSITION</th>
+                            <th>ENTRY_DATE</th>
+                            <th>ENTRY_PERSON</th>
+                            <th>BORROW_STATUS</th>
+                            <th>BORROW_DATE</th>
+                            <th>BORROW_PERSON</th>
+                            <th>NOTE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+
+<a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+@section Scripts {
+    <style>
+        .excel-icon {
+            width: 35px; /* Thu nhỏ icon */
+            height: 35px;
+            transition: transform 0.2s ease-in-out;
+        }
+
+            .excel-icon:hover {
+                transform: scale(1.1);
+            }
+
+        .card {
+            border-radius: 15px; /* Bo tròn card */
+            overflow: hidden;
+            background: #fff;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .card-body {
+            border-radius: 15px; /* Bo tròn card-body */
+            background: linear-gradient(145deg, #ffffff, #e6e6e6); /* Tạo hiệu ứng nổi */
+            box-shadow: 5px 5px 15px #c1c1c1, -5px -5px 15px #ffffff; /* Hiệu ứng đổ bóng */
+        }
+
+        .card:hover {
+            transform: translateY(-5px); /* Tạo hiệu ứng hover nâng khối */
+            box-shadow: 10px 10px 20px #c1c1c1, -10px -10px 20px #ffffff;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .hidden {
+            display: none!important;
+        }
+    </style>
+    <script>
+        document.getElementById("options-function").addEventListener("change", function () {
+            console.log("Selected value:", this.value); // Debug giá trị được chọn
+            const forms = ["input-sn-form", "import-export-form"];
+            forms.forEach(formId => {
+                const form = document.getElementById(formId);
+                if (form) form.classList.add("hidden");
+            });
+
+            const selectedForm = this.value === "SEARCH_NE" ? "input-sn-form" :
+                this.value === "IMPORT_NE" ? "import-export-form" : null;
+
+            if (selectedForm) {
+                console.log("Showing form:", selectedForm); // Debug form được hiển thị
+                document.getElementById(selectedForm).classList.remove("hidden");
+            }
+
+            document.getElementById("search-results").style.display = "none";
+            document.getElementById("button-action").classList.add("hidden");
+        });
+    </script>
+    <link href="~/lib/sweetalert2/dist/sweetalert2.min.css" rel="stylesheet" />
+    <link href="~/lib/sweetalert2/dist/sweetalert2.css" rel="stylesheet" />
+    <script src="~/lib/sweetalert2/dist/sweetalert2.js"></script>
+    <script src="~/assets/areas/repositories/js/khoScrap.js?v=@DateTime.Now.Ticks"></script>
+}

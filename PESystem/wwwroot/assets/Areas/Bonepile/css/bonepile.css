@@ -1,0 +1,195 @@
+﻿
+.dataTables_length {
+    display: none !important;
+}
+
+.dataTables_filter {
+    margin: 0 !important;
+    float: none !important;
+    display: flex !important;
+    align-items: center;
+}
+
+    .dataTables_filter label {
+        display: flex;
+        align-items: center;
+    }
+
+        .dataTables_filter label > span {
+            display: none; /* Ẩn chữ Search */
+        }
+
+    .dataTables_filter input {
+        margin-left: 5px;
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 200px;
+    }
+
+
+.dataTables_wrapper .top {
+    position: sticky;
+    top: 0;
+    background-color: #fff; /* hoặc màu của header */
+    z-index: 10;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+
+.excel-button {
+    border: none;
+    background: none;
+    width: 32px;
+    height: 32px;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+}
+
+header h1 {
+    font-size: 2rem;
+    color: #333;
+}
+
+.kpi-cards .card {
+    margin-bottom: 15px;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+    font-size: 1.2rem;
+}
+
+.card-text {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.card {
+    position: relative;
+    overflow: auto;
+    max-height: 700px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.table {
+    width: 100%;
+}
+
+#sumMaterialsTable {
+    width: 100% !important;
+}
+
+.table-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.status-filter {
+    flex: 0 0 200px;
+}
+
+#statusFilter {
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    width: 100%;
+}
+
+.dataTables_wrapper .dt-buttons {
+    margin: 0;
+}
+
+.dataTables_filter {
+    flex: 1;
+    text-align: right;
+}
+
+    .dataTables_filter input {
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 200px;
+    }
+
+.dataTables_length select {
+    margin: 0 !important;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.dataTables_wrapper .top {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+@@media (max-width: 768px) {
+    .table-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .status-filter {
+        flex: 0 0 100%;
+    }
+
+    .dataTables_filter {
+        text-align: left;
+    }
+
+        .dataTables_filter input {
+            width: 100%;
+        }
+}
+.bg-total {
+    background-color: #007bff;
+    color: #212529;
+}
+.bg-waitingScrap {
+    background-color: #dc3545;
+    color: #212529;
+}
+.bg-Scrap {
+    background-color: #fa0f0f;
+    color: #212529;
+}
+.bg-success {
+    background-color: #28a745;
+    color: #212529;
+}
+.bg-repair {
+    background-color: #ff8307;
+    color: #212529;
+}
+.bg-online {
+    background-color: #17a2b8;
+    color: #212529;
+}
+.bg-checkOut {
+    background-color: #05b529;
+    color: #212529;
+}
+.bg-checkIn {
+    background-color: #ffc107;
+    color: #212529;
+}
+.bg-kanban {
+    background-color: #17b86d;
+    color: #212529;
+}
+.bg-link {
+    background-color: #75b507;
+    color: #212529;
+}

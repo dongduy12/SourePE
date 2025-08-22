@@ -1,0 +1,195 @@
+﻿@{
+    ViewData["Title"] = "DDR-TOOL";
+}
+@{
+    Layout = "~/Areas/DDR/Views/Shared/Layout_DDR.cshtml";
+}
+
+<section>
+    <div class="col-md-7">
+        <div class="row">
+            <div class="col-md-5">
+                <textarea name="serialNumbers" id="sn-input" rows="3" placeholder="Nhập SerialNumber" class="form-control"></textarea>
+            </div>
+            <div class="col-md-2 d-flex flex-column justify-content-between align-items-stretch">
+                <div class="mb-2">
+                    <select id="typeSearch" class="form-select w-100" aria-label="trang thai">
+                        <option selected value="current">Hiện tại</option>
+                        <option value="history">Lịch sử</option>
+                    </select>
+                </div>
+                <div>
+                    <button id="search-btn" class="btn btn-ne w-100" type="button" onclick="submitSerialNumberForm()">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button id="update-btn" class="btn btn-ne w-100" type="button" data-bs-toggle="modal" onclick="openUpdateModal()" data-bs-target="#updateModal">
+                    <i class="fas fa-sync"></i> Update
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="repairPerson" value="@User.Identity.Name" />
+
+    <div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateModalLabel">Cập nhật trạng thái</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>StationCurrent:</strong> <span id="modal-station"></span></p>
+                    <select id="status-config" class="form-select w-100" aria-label="trang thai" style="display: none;" onchange="handleStatusChange()">
+                        <option selected value="PASS">PASS</option>
+                        <option value="FAIL">FAIL</option>
+                        <option value="HANGUP">HANG UP</option>
+                    </select>
+
+                    <!-- Input NextStation -->
+                    @*                    <div id="nextStationInputWrapper" style="display: none; margin-top: 10px;">
+                    <input type="text" id="nextStationInput" class="form-control" placeholder="Trạm kế tiếp">
+                    </div>*@
+
+                    <!-- Dropdown NextStation -->
+                    <div id="nextStationInputWrapper" style="display: none; margin-top: 10px;">
+                        <select id="nextStationInput" class="form-control">
+                            <option value="" disabled selected>Chọn trạm kế tiếp</option>
+                            <option value="DDR-TOOL">DDR-TOOL</option>
+                            <option value="FT-OFF">FT-OFF</option>
+                            <option value="HASS">HASS</option>
+                            <option value="FT-HASS">FT-HASS</option>
+                            <option value="REPAIR">REPAIR</option>
+                        </select>
+                    </div>
+
+                    <!-- Input DDR_TOOL_FAIL -->
+                    <div id="DDR_TOOL_FAIL" style="display: none; margin-top: 10px;">
+                        <input type="text" id="ddrToolInput" class="form-control" placeholder="Nhập DDR_TOOL_FAIL">
+                    </div>
+                    <!-- Input FT-OFF FAIL -->
+                    <div id="FT_OFF_FAIL" style="display: none; margin-top: 10px;">
+                        <input type="text" id="ftOffInput" class="form-control" placeholder="Nhập FT_OFF_FAIL">
+                    </div>
+                    <!-- Input HASS_FAIL -->
+                    <div id="HASS_FAIL" style="display: none; margin-top: 10px;">
+                        <input type="text" id="hassInput" class="form-control" placeholder="Nhập HASS_FAIL">
+                    </div>
+                    <!-- Input FT_HASS_FAIL -->
+                    <div id="FT_HASS_FAIL" style="display: none; margin-top: 10px;">
+                        <input type="text" id="ftHassInput" class="form-control" placeholder="Nhập FT_HASS_FAIL">
+                    </div>
+                    <!-- Input Instruction NVIDIA -->
+                    <div id="NVInstruction" style="display: none; margin-top: 10px;">
+                        <input type="text" id="nvInstructionInput" class="form-control" placeholder="Nhập Instruction NVIDIA">
+                    </div><!-- Input RE REPAIR -->
+                    <div id="RERepair" style="display: none; margin-top: 10px;">
+                        <input type="text" id="RERepairInput" class="form-control" placeholder="Nhập vị trí Repair">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-success" onclick="submitUpdate()">Cập nhật</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Modal checkbox button update-->
+    <div class="modal fade" id="noteModal" tabindex="-1" aria-labelledby="noteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="noteModalLabel">Cập nhật Instruction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="peInstruction-input-wrapper" style="display: none; margin-top: 10px;">
+                        <label for="peInstruction-input">Nhập PE Instruction:</label>
+                        <textarea id="peInstruction-input" class="form-control" rows="4" placeholder="Nhập PE Instruction"></textarea>
+                    </div>
+
+                    <div id="nvInstruction-input-wrapper" style="display: none; margin-top: 10px;">
+                        <label for="nvInstruction-input">Nhập NV Instruction:</label>
+                        <textarea id="nvInstruction-input" class="form-control" rows="4" placeholder="Nhập NV Instruction"></textarea>
+                    </div>
+
+                    <div id="reRepair-input-wrapper" style="display: none; margin-top: 10px;">
+                        <label for="reRepair-input">Nhập RE Repair:</label>
+                        <textarea id="reRepair-input" class="form-control" rows="4" placeholder="Nhập RE Repair"></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="updateInstruction()">Cập nhật</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--MODAL UPDATE GIÁ TRỊ TRONG CỘT-->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Cập nhật giá trị</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="editInput" class="form-label">Giá trị mới:</label>
+                    <input type="text" id="editInput" class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" id="updateValueBtn" class="btn btn-primary">Cập nhật</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--BẢNG KẾT QUẢ TÌM KIẾM-->
+    <div class="table-responsive mt-3">
+        <div class="d-flex gap-2">
+            <button id="peInstruction-btn" class="btn btn-ne" style="display: none;" onclick="openNoteModal()">PEInstruction</button>
+            <button id="reRepair-btn" class="btn btn-ne" style="display: none;" onclick="openNoteModal()">RERepair</button>
+            <button id="nvInstruction-btn" class="btn btn-ne" style="display: none;" onclick="openNoteModal()">NVInstruction</button>
+        </div>
+
+        <table id="keyPartTable" class="table-bordered table-striped datatable-table" style="overflow-x: auto; overflow-y:auto; display: none;">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all" onclick="toggleAllCheckboxes(this)"></th>
+                    <th>SerialNumber</th>
+                    <th>ModelName</th>
+                    <th>WIPGroup</th>
+                    <th>TestCode</th>
+                    <th>Mô tả lỗi</th>
+                    <th>TestTime</th>
+                    <th>TestGroup</th>
+                    <th>DDR-TOOL</th>
+                    <th>NVInstruction</th>
+                    <th>PEInstruction</th>
+                    <th>RERepair</th>
+                    <th>FT-OFF</th>
+                    <th>HASS</th>
+                    <th>FT-HASS</th>
+                    <th>PreviousGroup</th>
+                    <th>GroupCurrent</th>
+                    <th>Owner</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dữ liệu sẽ được thêm động -->
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/assets/areas/dpu/search.js?v=@DateTime.Now.Ticks"></script>
+}

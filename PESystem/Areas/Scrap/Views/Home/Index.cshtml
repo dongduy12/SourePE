@@ -1,0 +1,197 @@
+﻿@* File: Index.cshtml *@
+@{
+    ViewData["Title"] = "Scrap Area";
+    Layout = "~/Areas/Scrap/views/Shared/Layout_scrap.cshtml";
+}
+
+<!-- Nội dung trang dashboard -->
+<div class="container">
+    <h1 class="flowchart-title">Apply Task Scrap System Flow</h1>
+    <div class="flowchart-container">
+        <!-- Biểu đồ khối -->
+        <div class="flowchart">
+            <!-- Khối 1: List SN board which NV approved scrap -->
+            <div class="flowchart-box blue-box" data-url="/Scrap/ListSNBoard" style="top: 50px; left: 50px;">
+                List SN board which NV approved scrap
+            </div>
+
+            <!-- Khối 2: Load SN list into system -->
+            <div class="flowchart-box orange-box" data-url="/Scrap/Function" style="top: 50px; left: 250px;">
+                Load SN list into system
+            </div>
+
+            <!-- Mũi tên từ Khối 1 đến Khối 2 -->
+            <div class="arrow" style="top: 90px; left: 170px; width: 80px;"></div>
+
+            <!-- Khối 3: System auto check SN list -->
+            <div class="flowchart-box orange-box" data-url="/Scrap/SystemAutoCheck" style="top: 50px; left: 450px; width: 200px;">
+                System auto check SN list compare with data base. Have any SN duplicate or not
+            </div>
+
+            <!-- Mũi tên từ Khối 2 đến Khối 3 -->
+            <div class="arrow" style="top: 90px; left: 370px; width: 80px;"></div>
+
+            <!-- Khối 4: Reject all list to recheck -->
+            <div class="flowchart-box orange-box" data-url="/Scrap/RejectList" style="top: 50px; left: 800px;">
+                Reject all list to recheck. Notice which SN duplicate
+            </div>
+
+            <!-- Mũi tên từ Khối 3 đến Khối 4 (Yes, have SN duplicate) -->
+            <div class="arrow" style="top: 90px; left: 650px; width: 150px;"></div>
+            <div class="arrow-label" style="top: 60px; left: 670px;">Yes, have SN duplicate</div>
+
+            <!-- Khối 5: System save SN list to database -->
+            <div class="flowchart-box orange-box" data-url="/Scrap/Function" style="top: 200px; left: 450px; width: 200px;">
+                System save SN list to database and auto create apply task form (internal task)
+            </div>
+
+            <!-- Mũi tên từ Khối 3 đến Khối 5 (No, don’t have SN duplicate) -->
+            <div class="vertical-arrow" style="top: 130px; left: 550px; height: 70px;"></div>
+            <div class="arrow-label" style="top: 160px; left: 570px;">No, don’t have SN duplicate</div>
+
+            <!-- Khối 6: PM give cost -->
+            <div class="flowchart-box blue-box" data-url="/Scrap/PMGiveCost" style="top: 200px; left: 200px;">
+                PM give cost
+            </div>
+
+            <!-- Mũi tên từ Khối 5 đến Khối 6 (SN before kanban) -->
+            <div class="arrow" style="top: 240px; left: 320px; width: 130px; transform: rotate(180deg);"></div>
+            <div class="arrow-label" style="top: 220px; left: 340px;">SN before kanban</div>
+
+            <!-- Khối 7: Submit task form to NV -->
+            <div class="flowchart-box blue-box" data-url="/Scrap/SubmitTask" style="top: 350px; left: 450px; width: 200px;">
+                Submit task form to NV to get task no/PO. The system record the SN sent to customers.
+            </div>
+
+            <!-- Mũi tên từ Khối 5 đến Khối 7 (SN after kanban) -->
+            <div class="vertical-arrow" style="top: 280px; left: 550px; height: 70px;"></div>
+            <div class="arrow-label" style="top: 310px; left: 570px;">SN after kanban</div>
+
+            <!-- Mũi tên từ Khối 6 đến Khối 7 -->
+            <div class="arrow" style="top: 390px; left: 260px; width: 190px;"></div>
+            <div class="vertical-arrow" style="top: 280px; left: 260px; height: 105px;"></div>
+            <!-- Khối 8: After get task/PO from NV -->
+            <div class="flowchart-box orange-box" data-url="/Scrap/Function" style="top: 500px; left: 450px; width: 200px;">
+                After get task/PO from NV, load task/PO to system record
+            </div>
+
+            <!-- Mũi tên từ Khối 7 đến Khối 8 -->
+            <div class="vertical-arrow" style="top: 430px; left: 550px; height: 70px;"></div>
+
+            <!-- Khối 9: Move task/PO to scrap system -->
+            <div class="flowchart-box orange-box" data-url="/Scrap/MoveTaskPOScrapSystem" style="top: 500px; left: 700px;">
+                Move task/PO to scrap system (FXVQ-FXVZ)
+            </div>
+
+            <!-- Mũi tên từ Khối 8 đến Khối 9 -->
+            <div class="arrow" style="top: 540px; left: 650px; width: 50px;"></div>
+
+            <!-- Khối 10: Move to Scrap stock -->
+            <div class="flowchart-box blue-box" data-url="/Scrap/MoveScrapStock" style="top: 500px; left: 850px;">
+                Move to Scrap stock
+            </div>
+
+            <!-- Mũi tên từ Khối 9 đến Khối 10 -->
+            <div class="arrow" style="top: 540px; left: 820px; width: 30px;"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .flowchart-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #003087;
+        }
+
+        .flowchart-container {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            overflow: auto;
+        }
+
+        .flowchart {
+            position: relative;
+            width: 1000px;
+            height: 600px;
+        }
+
+        .flowchart-box {
+            position: absolute;
+            width: 120px;
+            height: 80px;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            border: 1px solid;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+            .flowchart-box:hover {
+                filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.8)) drop-shadow(0 0 30px rgba(0, 255, 255, 0.5));
+                transform: scale(1.05);
+            }
+
+        .blue-box {
+            background-color: #1ba1e2;
+            color: #ffffff;
+            border-color: #006EAF;
+        }
+
+        .orange-box {
+            background-color: #fa6800;
+            color: #000000;
+            border-color: #C73500;
+        }
+
+        .arrow {
+            position: absolute;
+            height: 2px;
+            background-color: #000;
+        }
+
+            .arrow::after {
+                content: '';
+                position: absolute;
+                right: -10px;
+                top: -5px;
+                border: 5px solid transparent;
+                border-left-color: #000;
+            }
+
+        .vertical-arrow {
+            position: absolute;
+            width: 2px;
+            background-color: #000;
+        }
+
+            .vertical-arrow::after {
+                content: '';
+                position: absolute;
+                bottom: -10px;
+                left: -4px;
+                border: 5px solid transparent;
+                border-top-color: #000;
+            }
+
+        .arrow-label {
+            position: absolute;
+            font-size: 11px;
+            color: #000;
+        }
+    </style>
+    <script src="~/assets/areas/scrap/js/dashboard.js?v=@DateTime.Now.Ticks"></script>
+}

@@ -1,0 +1,322 @@
+﻿@{
+    ViewData["Title"] = "Repository";
+}
+@{
+    Layout = "~/Areas/Repositories/Views/Shared/_Layout_Repo.cshtml";
+}
+<!-- Header -->
+<header class="my-3">
+    <h1>Dashboard Bonepile</h1>
+</header>
+
+<!-- KPI Cards -->
+<div class="kpi-cards row my-5">
+    <div class="col-md-2">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Bonepile Total</h5>
+                <p class="card-text" id="totalCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title">Scrap</h5>
+                <p class="card-text" id="scrapCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Waiting Scrap</h5>
+                <p class="card-text" id="waitingScrapCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Waiting Repair</h5>
+                <p class="card-text" id="waitingRepairCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Under Repair</h5>
+                <p class="card-text" id="underRepairCount">N/A</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Donut Chart and Table -->
+<div class="row my-4">
+    <!-- Biểu đồ phân bố trạng thái -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
+                <h5 class="card-title">Phân bố trạng thái</h5>
+                <canvas id="statusDonutChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng sumMaterialsTable -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <table id="sumMaterialsTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>SERIAL_NUMBER</th>
+                            <th>PRODUCT_LINE</th>
+                            <th>MODEL_NAME</th>
+                            <th>MO_NUMBER</th>
+                            <th>WIP_GROUP</th>
+                            <th>TEST_GROUP</th>
+                            <th>TEST_CODE</th>
+                            <th>TEST_TIME</th>
+                            <th>ERROR_DESC</th>
+                            <th>WORK_FLAG</th>
+                            <th>ERROR_FLAG</th>
+                            <th>STATUS</th>
+                            <th>NOTE</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/chart.umd.min.js"></script>
+    <script src="~/lib/jquery-3.7.0.min.js"></script>
+    <script src="~/lib/jquery.datatables.min.js"></script>
+    <script src="~/lib/datatables.bootstrap5.min.js"></script>
+    <script src="~/lib/datatables.buttons.min.js"></script>
+    <script src="~/lib/buttons.html5.min.js"></script>
+    <script src="~/lib/axios.min.js"></script>
+    <script src="~/lib/jszip.min.js"></script>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const apiBase = "http://10.220.130.119:9090/api/Bonepile2";
+            const apiDetailUrl = `${apiBase}/adapter-repair-records`;
+
+            // Định nghĩa tất cả trạng thái hợp lệ
+            const validStatuses = [
+                "SPE approve scrap",
+                "SPE approve to BGA",
+                "Waiting SPE approve scrap",
+                "WAITING_REPAIR",
+                "UNDER_REPAIR"
+            ];
+
+            const statusColorMap = {
+                "SPE approve scrap": "#dc3545",
+                "SPE approve to BGA": "#6f42c1",
+                "Waiting SPE approve scrap": "#17a2b8",
+                "WAITING_REPAIR": "#ffc107",
+                "UNDER_REPAIR": "#fd7e14"
+            };
+
+            let dataTable;
+            let allData = [];
+
+            // Load KPI + Donut chart
+            async function loadDashboardData() {
+                try {
+                    const res = await axios.post(apiDetailUrl, { statuses: null });
+                    const { count: totalCount, statusCounts, data } = res.data;
+                    allData = data || [];
+
+                    // Gán KPI
+                    document.getElementById("totalCount").innerText = totalCount || 0;
+                    document.getElementById("scrapCount").innerText = statusCounts.find(s => s.status === "SPE approve scrap")?.count || 0;
+                    document.getElementById("waitingScrapCount").innerText = statusCounts.find(s => s.status === "Waiting SPE approve scrap")?.count || 0;
+                    document.getElementById("waitingRepairCount").innerText = statusCounts.find(s => s.status === "WAITING_REPAIR")?.count || 0;
+                    document.getElementById("underRepairCount").innerText = statusCounts.find(s => s.status === "UNDER_REPAIR")?.count || 0;
+
+                    // Tính phần trăm cho biểu đồ
+                    const total = statusCounts.reduce((sum, s) => sum + s.count, 0);
+                    const percentages = statusCounts.map(s => total > 0 ? ((s.count / total) * 100).toFixed(1) : 0);
+
+                    // Vẽ Donut chart với phần trăm
+                    const donutCtx = document.getElementById("statusDonutChart").getContext("2d");
+                    new Chart(donutCtx, {
+                        type: "doughnut",
+                        data: {
+                            labels: statusCounts.map(s => s.status),
+                            datasets: [{
+                                data: statusCounts.map(s => s.count),
+                                backgroundColor: statusCounts.map(s => statusColorMap[s.status] || "#ccc"),
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: "bottom",
+                                    labels: {
+                                        boxWidth: 20,
+                                        boxHeight: 20,
+                                        generateLabels: (chart) => {
+                                            const data = chart.data;
+                                            return data.labels.map((label, i) => ({
+                                                text: `${label} (${percentages[i]}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                strokeStyle: data.datasets[0].backgroundColor[i],
+                                                lineWidth: 1,
+                                                hidden: isNaN(data.datasets[0].data[i]) || data.datasets[0].data[i] === 0,
+                                                index: i
+                                            }));
+                                        }
+                                    },
+                                    maxWidth: 300,
+                                    align: "center"
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function (context) {
+                                            const label = context.label || '';
+                                            const value = context.raw || 0;
+                                            const percentage = percentages[context.dataIndex];
+                                            return `${label}: ${value} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // Load dữ liệu bảng ban đầu (Tất cả trạng thái)
+                    await loadTableData(validStatuses);
+                } catch (error) {
+                    console.error("Lỗi khi tải dashboard:", error);
+                    alert("Không thể tải dữ liệu dashboard. Vui lòng thử lại!");
+                }
+            }
+
+            // Load dữ liệu bảng dựa trên trạng thái
+            async function loadTableData(statuses) {
+                try {
+                    // Hiển thị spinner
+                    showSpinner();
+                    // Lọc dữ liệu theo trạng thái
+                    const tableData = allData.filter(r => statuses.length === 0 || statuses.includes(r.status));
+
+                    if (dataTable) {
+                        dataTable.clear().rows.add(tableData).draw();
+                    } else {
+                        dataTable = $('#sumMaterialsTable').DataTable({
+                            data: tableData,
+                            scrollX: true,
+                            columns: [
+                                { data: "sn" },
+                                { data: "productLine" },
+                                { data: "modelName" },
+                                { data: "moNumber" },
+                                { data: "wipGroup" },
+                                { data: "testGroup" },
+                                { data: "testCode" },
+                                { data: "testTime" },
+                                { data: "errorDesc" },
+                                { data: "workFlag" },
+                                { data: "errorFlag" },
+                                { data: "status" },
+                                { data: "note" }
+                            ],
+                            dom: '<"top d-flex align-items-center"flB>rt<"bottom"ip>',
+
+                            buttons: [
+                                {
+                                    extend: 'excelHtml5',
+                                    text: '<img src="/assets/img/excel.png" class="excel-icon excel-button"/>',
+                                    title: '', // Loại bỏ tiêu đề mặc định
+                                    filename: function () {
+                                        const now = new Date();
+                                        const offset = 7 * 60; // +07:00
+                                        const localDate = new Date(now.getTime() + offset * 60 * 1000);
+                                        const dateStr = localDate.toISOString().slice(0, 10).replace(/-/g, '');
+                                        const timeStr = localDate.toTimeString().slice(0, 8).replace(/:/g, '');
+                                        return `Bonepile2_${dateStr}_${timeStr}`;
+                                    },
+                                    exportOptions: {
+                                        columns: ':visible',
+                                        modifier: {
+                                            selected: null
+                                        },
+                                        format: {
+                                            header: function (data, columnIdx) {
+                                                // Loại bỏ khoảng trắng hoặc ký tự không mong muốn
+                                                return data.trim();
+                                            }
+                                        }
+                                    }
+                                }
+                            ],
+                            destroy: true,
+                            language: {
+                                search: "",
+                                emptyTable: "Không có dữ liệu để hiển thị",
+                                zeroRecords: "Không tìm thấy bản ghi phù hợp"
+                            },
+                            initComplete: function () {
+                                // Tạo select filter
+                                var selectHtml = `
+                                                            <div class="form-group mb-0" style="min-width: 200px;">
+                                                                <select id="statusFilterDt" class="form-control">
+                                                                    <option value="">Tất cả trạng thái</option>
+                                                                    <option value="SPE approve scrap">SPE Approve Scrap</option>
+                                                                    <option value="SPE approve to BGA">SPE Approve to BGA</option>
+                                                                    <option value="Waiting SPE approve scrap">Waiting SPE Approve Scrap</option>
+                                                                    <option value="WAITING_REPAIR">Waiting Repair</option>
+                                                                    <option value="UNDER_REPAIR">Under Repair</option>
+                                                                </select>
+                                                            </div>
+                                                        `;
+
+                                // Chèn vào phần `top` bên trái (trước nút excel)
+                                $('.dataTables_wrapper .top').prepend(selectHtml);
+
+                                // Gắn sự kiện
+                                $('#statusFilterDt').on('change', async function () {
+                                    const selectedStatus = this.value;
+                                    const statuses = selectedStatus ? [selectedStatus] : validStatuses;
+                                    await loadTableData(statuses);
+                                });
+
+
+                                // Set placeholder cho ô search
+                                $('.dataTables_filter input[type="search"]').attr('placeholder', 'Tìm kiếm');
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error("Lỗi khi tải dữ liệu bảng:", error);
+                    alert("Không thể tải dữ liệu bảng. Vui lòng thử lại!");
+                } finally {
+                    //document.getElementById("spinner-overlay").style.display = "none";
+                    hideSpinner();
+                }
+            }
+
+            // Khởi tạo dashboard
+            await loadDashboardData();
+
+            //// Xử lý sự kiện thay đổi trạng thái
+            //document.getElementById("statusFilter").addEventListener("change", async function () {
+            //    const selectedStatus = this.value;
+            //    const statuses = selectedStatus ? [selectedStatus] : validStatuses;
+            //    await loadTableData(statuses);
+            //});
+        });
+    </script>
+}

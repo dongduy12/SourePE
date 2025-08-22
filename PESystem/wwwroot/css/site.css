@@ -1,0 +1,356 @@
+﻿body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', Arial, sans-serif;
+    background-color: #f4f5fa;
+    overflow-x: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 70px; /* Trạng thái mặc định: thu gọn */
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #1a1f2e;
+    z-index: 500;
+    padding: 16px 0;
+    transition: width 0.25s ease;
+    overflow: hidden;
+}
+
+    .sidebar.open {
+        width: 260px !important; /* Trạng thái mở rộng, khớp với Materio */
+    }
+
+    /* Dashboard container */
+    .sidebar .dashboard-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+        .sidebar .dashboard-container .logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        .sidebar .dashboard-container .spanTitle {
+            color: #fff;
+            font-size: 1.25rem;
+            font-weight: 600;
+            opacity: 0;
+            white-space: nowrap;
+            transition: opacity 0.25s ease;
+            margin-left: 12px;
+        }
+
+    .sidebar.open .dashboard-container .spanTitle {
+        opacity: 1;
+    }
+
+.sidebar-hover {
+    width: 260px !important;
+    z-index: 500;
+}
+    /* Hiển thị span khi hover hoặc expanded */
+    .sidebar-hover .nav-link span,
+    .sidebar-hover .dashboard-container .spanTitle,
+    .sidebar-expanded .sidebar .nav-link span,
+    .sidebar-expanded .sidebar .dashboard-container .spanTitle {
+        opacity: 1;
+    }
+
+
+/* Trạng thái cố định: mở rộng và đẩy main */
+.sidebar-expanded .sidebar {
+    width: 260px;
+}
+
+
+
+/* Checkbox cố định */
+.fixed-checkbox {
+    display: flex;
+    align-items: center;
+    color: #a5a8b6;
+}
+
+    .fixed-checkbox input {
+        display: none;
+    }
+
+    .fixed-checkbox label {
+        cursor: pointer;
+        font-size: 18px;
+        transition: color 0.25s ease;
+    }
+
+    .fixed-checkbox input:checked + label {
+        color: #fff;
+    }
+
+/* Nav links */
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    color: #a5a8b6;
+    padding: 12px 20px;
+    transition: background 0.25s ease, color 0.25s ease;
+    text-decoration: none;
+}
+
+    .sidebar .nav-link i {
+        min-width: 24px;
+        font-size: 20px;
+    }
+
+    .sidebar .nav-link span {
+        opacity: 0;
+        white-space: nowrap;
+        margin-left: 16px;
+        font-size: 1rem;
+        transition: opacity 0.25s ease;
+    }
+
+.sidebar.open .nav-link span {
+    opacity: 1;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.sidebar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+/* Header */
+.header {
+    position: fixed;
+    top: 0;
+    left: 70px;
+    width: calc(100% - 70px);
+    height: 64px;
+    background-color: #1a1f2e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    z-index: 500;
+    padding: 0 24px;
+    transition: left 0.25s ease, width 0.25s ease;
+}
+
+.sidebar-expanded .header {
+    left: 260px;
+    width: calc(100% - 260px);
+}
+
+/* Main content */
+#mainContent {
+    flex: 1;
+    margin-top: 64px;
+    margin-left: 70px;
+    padding: 24px;
+    transition: margin-left 0.25s ease;
+    overflow-y: auto;
+    background-color: transparent;
+}
+
+.sidebar-expanded #mainContent {
+    margin-left: 260px;
+}
+
+/* User avatar */
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Button */
+.btn-ne {
+    background-color: #7367f0;
+    border: none;
+    color: #fff;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 6px;
+    transition: background 0.25s ease;
+}
+
+    .btn-ne:hover {
+        background-color: #6254d8;
+    }
+
+.custom-card {
+    width: 140px;
+    height: 140px;
+    margin: auto; /* Căn giữa card */
+}
+
+    .custom-card img.logo {
+        width: 90px; /* Giảm kích thước logo */
+        height: 90px;
+    }
+
+
+#spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw; /* Chiều rộng toàn màn hình */
+    height: 100vh; /* Chiều cao toàn màn hình */
+    background-color: rgba(0, 0, 0, 0.5); /* Làm mờ nền */
+    display: flex;
+    justify-content: center; /* Căn giữa ngang */
+    align-items: center; /* Căn giữa dọc */
+    z-index: 1000; /* Đảm bảo hiển thị trên mọi nội dung khác */
+    display: none; /* Ẩn mặc định */
+}
+
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loader {
+    width: 100px; /* Tăng kích thước spinner */
+    height: 100px;
+    border: 8px solid #FFF;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+}
+
+    .loader::after {
+        content: '';
+        box-sizing: border-box;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 8px solid transparent;
+        border-bottom-color: #FF3D00;
+    }
+
+
+.btn-ne {
+    background-color: #76b900 !important;
+    border: none !important;
+    color: #000 !important;
+    font-weight: bold !important;
+    /* Đảm bảo nút có chiều dài và chiều rộng bằng nhau */
+    aspect-ratio: 1 / 0.3; /* Giữ tỷ lệ 1:1 */
+    width: 10vw; /* Chiều rộng linh hoạt dựa trên kích thước màn hình */
+    min-width: 40px; /* Đặt kích thước tối thiểu để tránh quá nhỏ */
+    max-width: 120px; /* Kích thước tối đa nếu cần */
+    /* Ngăn nội dung xuống dòng */
+    white-space: nowrap;
+    /* Căn giữa nội dung bên trong */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Đảm bảo chữ không bị cắt */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto', Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', Arial, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); /* Màu nền dự phòng */
+    overflow-x: hidden;
+    position: relative;
+    min-height: 100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+/* Hiệu ứng particles */
+#particles-js {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 0; /* Đặt nền thấp nhất */
+    pointer-events: none; /* Ngăn particles cản trở tương tác */
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Đèn LED di chuyển */
+@keyframes glowing {
+    0% {
+        box-shadow: 0 0 5px rgba(118, 185, 0, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(118, 185, 0, 0.8);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(118, 185, 0, 0.3);
+    }
+}
+
+.text-color {
+    color: #0c0c0c !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        width: 260px;
+        transition: transform 0.25s ease;
+    }
+
+    .sidebar.mobile-show {
+        transform: translateX(0);
+    }
+
+    #mainContent {
+        margin-left: 0 !important;
+    }
+
+    .header {
+        left: 0 !important;
+        width: 100% !important;
+    }
+}

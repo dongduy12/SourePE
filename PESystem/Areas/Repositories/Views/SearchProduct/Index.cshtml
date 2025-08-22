@@ -1,0 +1,248 @@
+﻿@{
+    ViewData["Title"] = "KHO RE";
+}
+@{
+    Layout = "~/Areas/Repositories/Views/Shared/_Layout_Repo.cshtml";
+}
+<div class="container-fluid">
+    <input type="hidden" id="entryPerson" value="@User.Identity.Name" />
+    <div class="row mb-3">
+        <!-- Cột chọn loại tìm kiếm -->
+        <div class="col-md-2">
+            <form id="search-form" class="form-inline">
+                <select id="search-options" class="form-select">
+                    <option selected disabled>TÌM KIẾM</option>
+                    <option value="SEARCH_SN">SERIAL NUMBER</option>
+                    <option value="SEARCH_CUSTOM">TÙY CHỌN</option>
+                    <option value="HISTORY_BORROW">LỊCH SỬ MƯỢN</option>
+                </select>
+            </form>
+        </div>
+
+        <!-- Cột form nhập liệu -->
+        <div class="col-md-10">
+            <!-- Form tìm kiếm SN -->
+            <form id="input-sn-form" method="post" class="hidden" data-search-type="SEARCH_SN">
+                <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
+                    <div class="col-md-4">
+                        <textarea name="serialNumbers" id="sn-input" class="form-control" rows="3" placeholder="Nhập Serial Number (mỗi dòng 1 SN)"></textarea>
+                    </div>
+                    <div class="col-md-2">
+                        <button id="submit-sn-btn" class="btn btn-ne" type="button">TÌM KIẾM</button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Form tìm kiếm nâng cao -->
+            <form id="custom-form" method="post" class="hidden" data-search-type="SEARCH_CUSTOM">
+                <div class="row align-items-end">
+                    <div class="col-md-2">
+                        <select id="wipGroup-select" class="form-select" multiple>
+                            <option value="">ALL</option>
+                            <!-- Tùy chọn động từ JS -->
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input name="testCode" id="testCode" class="form-control" placeholder="Test Code">
+                    </div>
+                    <div class="col-md-2">
+                        <input name="data1" id="data1" class="form-control" placeholder="Error Description">
+                    </div>
+                    <div class="col-md-2">
+                        <select id="modelName-select" class="form-select" multiple>
+                            <option value="">ALL</option>
+                            <!-- Tùy chọn động từ JS -->
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="borrowStatus" id="borrowStatus" class="form-control">
+                            <option value="">Trạng thái mượn</option>
+                            <option value="Borrowed">Đang mượn</option>
+                            <option value="Available">Có sẵn</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button id="advanced-search-btn" class="btn btn-ne" type="button">TÌM KIẾM</button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Form lịch sử mượn -->
+            <form id="history-borrow-form" method="post" class="hidden" data-search-type="HISTORY_BORROW">
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <textarea name="serialNumbers" id="history-borrow-sn-input" class="form-control" rows="3" placeholder="Nhập Serial Number (mỗi dòng 1 SN)"></textarea>
+                    </div>
+                    <div class="col-md-2">
+                        <button id="history-search-btn" class="btn btn-ne" type="button">TÌM KIẾM</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Nút hành động -->
+    <div id="button-action" class="row mb-6 hidden">
+        <div class="col-md-6 d-flex justify-content-between align-items-center">
+            <button id="update-note-btn" class="btn btn-ne" disabled>Ghi chú</button>
+            <button id="update-action-btn" class="btn btn-ne" disabled>Action</button>
+            <button id="borrow-btn" class="btn btn-ne" disabled>Cho mượn</button>
+            <span id="total-results" class="alert btn-ne" style="margin-bottom: 0;">Kết quả: 0</span>
+        </div>
+    </div>
+
+    <!-- Bảng kết quả -->
+    <div id="search-results" class="mt-2" style="display: none;">
+        <img class="hidden" id="export-excel-btn" src="~/assets/img/excel.png" alt="Excel Icon" style="width: 40px;" title="Xuất Excel (Tìm kiếm nâng cao)">
+        <img class="hidden" id="export-sn-excel-btn" src="~/assets/img/excel.png" alt="Excel Icon" style="width: 40px;" title="Xuất Excel (Tìm kiếm SN)">
+        <div class="datatable-wrapper">
+            <div class="d-flex mb-2">
+            </div>
+            <table class="datatable-table table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="checkbox-sn"><input type="checkbox" id="select-all-checkbox" /></th>
+                        <th>SERIAL_NUMBER</th>
+                        <th>PRODUCT_LINE</th>
+                        <th>MODEL_NAME</th>
+                        <th>MO_NUMBER</th>
+                        <th>WIP_GROUP</th>
+                        <th>WORK_FLAG</th>
+                        <th>TEST_GROUP</th>
+                        <th>REASON_CODE</th>
+                        <th>TEST_CODE</th>
+                        <th>ERROR_DESC</th>
+                        <th>KANBAN_WIP</th>
+                        <th>HOLD_REASON</th>
+                        <th>BLOCK_REASON</th>
+                        <th>SHELF</th>
+                        <th>COLUMN</th>
+                        <th>LEVEL</th>
+                        <th>TRAY</th>
+                        <th>POSITION</th>
+                        <th>ENTRY_DATE</th>
+                        <th>ENTRY_PERSON</th>
+                        <th>STATUS</th>
+                        <th>BORROW_DATE</th>
+                        <th>BORROW_PERSON</th>
+                        <th>NOTE</th>
+                        <th>ACTION</th>
+                        <th>SCRAP</th>
+                    </tr>
+                </thead>
+                <tbody id="results-body"></tbody>
+            </table>
+        </div>
+        <div id="pagination" class="mt-2 text-center">
+            <button id="prev-page-btn" class="btn btn-ne" style="display: none;">Trang trước</button>
+            <span id="pagination-info" class="mx-3">Trang 1/1</span>
+            <button id="next-page-btn" class="btn btn-ne" style="display: none;">Trang tiếp</button>
+        </div>
+    </div>
+
+    <!-- Bảng lịch sử mượn -->
+    <div id="result-history" class="mt-2" style="display: none;">
+        <table id="history-borrow-table" class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>SERIAL_NUMBER</th>
+                    <th>PRODUCT_LINE</th>
+                    <th>MODEL_NAME</th>
+                    <th>BORROW_DATE</th>
+                    <th>BORROW_PERSON</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+<script>
+    document.getElementById("search-options").addEventListener("change", function () {
+    const forms = ["input-sn-form", "custom-form", "history-borrow-form"];
+    forms.forEach(formId => document.getElementById(formId).classList.add("hidden"));
+    const selectedForm = this.value === "SEARCH_SN" ? "input-sn-form" :
+                        this.value === "SEARCH_CUSTOM" ? "custom-form" :
+                        "history-borrow-form";
+    document.getElementById(selectedForm).classList.remove("hidden");
+    document.getElementById("search-results").style.display = "none";
+    document.getElementById("result-history").style.display = "none";
+    document.getElementById("button-action").classList.add("hidden");
+});
+</script>
+
+<style>
+    .hidden {
+        display: none;
+    }
+
+    .datatable-wrapper {
+        max-height: 700px;
+        max-width: 100%;
+        overflow: auto;
+    }
+
+    .datatable-table thead th {
+        position: sticky;
+        top: 0;
+        background-color: #343a40;
+        z-index: 10;
+    }
+
+    .datatable-table th:nth-child(1),
+    .datatable-table td:nth-child(1),
+    .datatable-table th:nth-child(2),
+    .datatable-table td:nth-child(2) {
+        position: sticky;
+        left: 0;
+        background-color: #343a40;
+        z-index: 5;
+    }
+
+    .datatable-table td:nth-child(1),
+    .datatable-table td:nth-child(2) {
+        background-color: #fff;
+    }
+
+    .datatable-table th:nth-child(1),
+    .datatable-table td:nth-child(1),
+    .datatable-table th:nth-child(2),
+    .datatable-table td:nth-child(2) {
+        border-right: 2px solid #dee2e6;
+    }
+
+    .datatable-table th:nth-child(1),
+    .datatable-table td:nth-child(1) {
+        left: 0;
+        min-width: 50px;
+    }
+
+    .datatable-table th:nth-child(2),
+    .datatable-table td:nth-child(2) {
+        left: 50px;
+        min-width: 100px;
+    }
+
+    .datatable-table thead th:nth-child(1),
+    .datatable-table thead th:nth-child(2) {
+        z-index: 15;
+    }
+
+    /* Thêm hiệu ứng hover cho hàng */
+    .datatable-table tbody tr:hover td,
+    .datatable-table tbody tr:hover th {
+        background-color: #76b900 !important;
+        /*transition: background-color 0.2s ease;*/
+    }
+
+    /* (Tùy chọn) Giữ màu đặc biệt cho hàng auto-block khi hover */
+    .datatable-table tbody tr.auto-block:hover td,
+    .datatable-table tbody tr.auto-block:hover th {
+        background-color: #76b900 !important;
+        /*transition: background-color 0.2s ease;*/
+    }
+</style>
+
+@section Scripts {
+    <script src="~/assets/areas/repositories/js/search.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/assets/areas/repositories/js/searchhistoryborrow.js?v=@DateTime.Now.Ticks"></script>
+}

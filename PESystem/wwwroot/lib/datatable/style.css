@@ -1,0 +1,356 @@
+﻿.datatable-wrapper.no-header .datatable-container {
+    border-top: 1px solid #d9d9d9;
+}
+
+.datatable-wrapper.no-footer .datatable-container {
+    border-bottom: 1px solid #d9d9d9;
+}
+
+.datatable-top,
+.datatable-bottom {
+    padding: 8px 10px;
+}
+
+    .datatable-top > nav:first-child,
+    .datatable-top > div:first-child,
+    .datatable-bottom > nav:first-child,
+    .datatable-bottom > div:first-child {
+        float: left;
+    }
+
+    .datatable-top > nav:last-child,
+    .datatable-top > div:not(first-child),
+    .datatable-bottom > nav:last-child,
+    .datatable-bottom > div:last-child {
+        float: right;
+    }
+
+.datatable-selector {
+    padding: 6px;
+}
+
+.datatable-input {
+    padding: 6px 12px;
+}
+
+.datatable-info {
+    margin: 7px 0;
+}
+
+/* PAGER */
+.datatable-pagination ul {
+    margin: 0;
+    padding-left: 0;
+}
+
+.datatable-pagination li {
+    list-style: none;
+    float: left;
+}
+
+    .datatable-pagination li.datatable-hidden {
+        visibility: hidden;
+    }
+
+.datatable-pagination a,
+.datatable-pagination button {
+    border: 1px solid transparent;
+    float: left;
+    margin-left: 2px;
+    padding: 6px 12px;
+    position: relative;
+    text-decoration: none;
+    color: #333;
+    cursor: pointer;
+}
+
+    .datatable-pagination a:hover,
+    .datatable-pagination button:hover {
+        background-color: #d9d9d9;
+    }
+
+.datatable-pagination .datatable-active a,
+.datatable-pagination .datatable-active a:focus,
+.datatable-pagination .datatable-active a:hover,
+.datatable-pagination .datatable-active button,
+.datatable-pagination .datatable-active button:focus,
+.datatable-pagination .datatable-active button:hover {
+    background-color: #d9d9d9;
+    cursor: default;
+}
+
+.datatable-pagination .datatable-ellipsis a,
+.datatable-pagination .datatable-disabled a,
+.datatable-pagination .datatable-disabled a:focus,
+.datatable-pagination .datatable-disabled a:hover,
+.datatable-pagination .datatable-ellipsis button,
+.datatable-pagination .datatable-disabled button,
+.datatable-pagination .datatable-disabled button:focus,
+.datatable-pagination .datatable-disabled button:hover {
+    pointer-events: none;
+    cursor: default;
+}
+
+    .datatable-pagination .datatable-disabled a,
+    .datatable-pagination .datatable-disabled a:focus,
+    .datatable-pagination .datatable-disabled a:hover,
+    .datatable-pagination .datatable-disabled button,
+    .datatable-pagination .datatable-disabled button:focus,
+    .datatable-pagination .datatable-disabled button:hover {
+        cursor: not-allowed;
+        opacity: 0.4;
+    }
+
+.datatable-pagination .datatable-pagination a,
+.datatable-pagination .datatable-pagination button {
+    font-weight: bold;
+}
+
+/* TABLE */
+.datatable-table {
+    table-layout: fixed;
+    max-width: auto;
+    border-spacing: 0;
+    border-collapse: separate;
+}
+
+    .datatable-table > tbody > tr > td,
+    .datatable-table > tbody > tr > th,
+    .datatable-table > tfoot > tr > td,
+    .datatable-table > tfoot > tr > th,
+    .datatable-table > thead > tr > td,
+    .datatable-table > thead > tr > th {
+        vertical-align: top;
+        padding: 8px 10px;
+    }
+
+    .datatable-table > thead > tr > th {
+        vertical-align: bottom;
+        text-align: center;
+        border-bottom: 1px solid #d9d9d9;
+    }
+
+    .datatable-table > tfoot > tr > th {
+        vertical-align: bottom;
+        text-align: left;
+        border-top: 1px solid #d9d9d9;
+    }
+
+    .datatable-table th {
+        font-size: 12px;
+        padding: 5px;
+        vertical-align: bottom;
+    }
+
+        .datatable-table th a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .datatable-table th button,
+        .datatable-pagination-list button {
+            color: inherit;
+            border: 0;
+            background-color: inherit;
+            cursor: pointer;
+            text-align: inherit;
+            font-weight: inherit;
+            font-size: inherit;
+        }
+
+.datatable-sorter, .datatable-filter {
+    display: inline-block;
+    height: 100%;
+    position: relative;
+    width: 100%;
+}
+
+    .datatable-sorter::before,
+    .datatable-sorter::after {
+        content: "";
+        height: 0;
+        width: 0;
+        position: absolute;
+        right: 4px;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        opacity: 0.2;
+    }
+
+
+    .datatable-sorter::before {
+        border-top: 4px solid #000;
+        bottom: 0px;
+    }
+
+    .datatable-sorter::after {
+        border-bottom: 4px solid #000;
+        border-top: 4px solid transparent;
+        top: 0px;
+    }
+
+.datatable-ascending .datatable-sorter::after,
+.datatable-descending .datatable-sorter::before,
+.datatable-ascending .datatable-filter::after,
+.datatable-descending .datatable-filter::before {
+    opacity: 0.6;
+}
+
+.datatable-filter::before {
+    content: "";
+    position: absolute;
+    right: 4px;
+    opacity: 0.2;
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-radius: 50%;
+    border-top: 10px solid #000;
+    top: 25%;
+}
+
+.datatable-filter-active .datatable-filter::before {
+    opacity: 0.6;
+}
+
+.datatable-empty {
+    text-align: center;
+}
+
+.datatable-top::after, .datatable-bottom::after {
+    clear: both;
+    content: " ";
+    display: table;
+}
+
+table.datatable-table:focus tr.datatable-cursor > td:first-child {
+    border-left: 3px blue solid;
+}
+
+table.datatable-table:focus {
+    outline: solid 1px black;
+    outline-offset: -1px;
+}
+
+/*edit by Duy*/
+.datatable-container {
+    /*background-color: #f7f7f7;*/ /* Nền sáng */
+    /*border: 1px solid #ddd;*/ /* Viền nhạt */
+    /*border-radius: 5px;*/ /* Bo góc */
+    overflow-x: auto; /* Cuộn ngang */
+    overflow-y: auto; /* Cuộn dọc */
+    max-height: 600px; /* Giới hạn chiều cao nếu cần */
+}
+
+.datatable-table > thead > tr > th {
+    background-color: rgb(0,0,0, 0.8); /* Màu nền tiêu đề */
+    color: white; /* Chữ màu trắng */
+    text-align: center !important; /* Căn giữa */
+    font-weight: bold; /* Đậm chữ */
+    /*padding: 10px; Tăng khoảng cách */
+}
+
+.datatable-table > tbody > tr {
+    background-color: #fff; /* Nền trắng */
+    border-bottom: 1px solid #ddd; /* Viền ngăn giữa các hàng */
+}
+
+    /*.datatable-table > tbody > tr:nth-child(odd) {
+        background-color: #f9f9f9;*/ /* Nền cho hàng lẻ */
+    /*}*/
+    /*.datatable-table > tbody > tr:hover {
+        background-color: #76b900;*/ /* Nền khi hover */
+    /*}*/
+
+#results-body td, #results-body th {
+    font-size: 12px; /* Thu nhỏ chữ */
+    text-align: center; /* Canh giữa nội dung */
+}
+
+#search-results .datatable-container {
+    overflow-x: auto; /* Bật cuộn ngang nếu cần */
+}
+
+.datatable-pagination ul {
+    font-size: 12px; /* Thu nhỏ chữ trong phân trang */
+}
+
+/* Bật cuộn ngang cho các ô cụ thể */
+.scrollable {
+    overflow-x: auto; /* Bật cuộn ngang */
+    white-space: nowrap; /* Không cho phép xuống dòng */
+    text-overflow: ellipsis; /* Thêm dấu "..." nếu nội dung tràn */
+    display: block; /* Đảm bảo ô hoạt động như block để cuộn */
+}
+/* Áp dụng cho các ô trong bảng */
+.datatable-table th, .datatable-table td {
+    white-space: nowrap; /* Không cho xuống dòng */
+}
+
+
+/* Mặc định: Nội dung bị cắt với dấu "..." */
+.datatable-table td {
+    white-space: nowrap; /* Không cho phép xuống dòng */
+    overflow: hidden !important; /* Ẩn nội dung vượt quá */
+    text-overflow: ellipsis; /* Thêm dấu "..." nếu nội dung bị cắt */
+}
+
+/* Khi hàng được chọn: Hiển thị đầy đủ nội dung */
+.datatable-table tr.expanded td {
+    max-width: none; /* Loại bỏ giới hạn chiều rộng */
+    white-space: normal !important; /* Cho phép xuống dòng */
+    overflow: visible !important; /* Hiển thị toàn bộ nội dung */
+}
+
+
+
+
+/* Ghim cột SN */
+.sticky-col {
+    left: 0; /* Ghim ở mép trái */
+    z-index: 2; /* Đảm bảo cột SN nằm trên các ô khác */
+    text-align: center; /* Căn giữa nội dung */
+    font-weight: bold;
+    background: white;
+}
+/* Ghim thanh tiêu đề (header) */
+.datatable-table thead th {
+    position: sticky; /* Sticky header */
+    top: 0; /* Ghim ở đầu */
+    background: #4CAF50; /* Màu nền */
+    color: white;
+    z-index: 1; /* Đảm bảo header nằm trên dữ liệu */
+}
+
+
+/* Đặt chiều rộng các cột đều nhau */
+.datatable-table th, .datatable-table td {
+    width: 140px; /* Chia đều */
+    text-align: center;
+    overflow: hidden; /* Ẩn nội dung khi quá dài */
+    text-overflow: ellipsis; /* Hiển thị dấu "..." khi nội dung bị ẩn */
+}
+
+/* Tooltip hiển thị khi hover */
+.tooltip {
+    position: absolute;
+    display: none;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 9999;
+}
+
+.checkbox-sn {
+    width: 50px !important; /* Đặt độ rộng cố định */
+}
+.data1{
+    width: 200px !important;
+}
+.location{
+    width: 60px !important;
+}
+

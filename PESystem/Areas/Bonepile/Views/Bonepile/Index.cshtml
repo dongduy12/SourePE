@@ -1,0 +1,229 @@
+﻿@{
+    ViewData["Title"] = "Bonepile";
+}
+@{
+    Layout = "~/Areas/Bonepile/Views/Shared/_Layout_Bonepile.cshtml";
+}
+<!-- Header -->
+<header>
+    <h1>Bonepile Before</h1>
+</header>
+
+<!-- KPI Cards -->
+<div class="kpi-cards row">
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-primary smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">BonepileTotal</h5>
+                <p class="card-text" id="totalCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-checkOut smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">ScrapHasTask</h5>
+                <p class="card-text" id="scrapCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-checkIn smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">ScrapLacksTask</h5>
+                <p class="card-text" id="noTaskscrapCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-waitingScrap smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">WaitingApproveScrap</h5>
+                <p class="card-text" id="waitingScrapCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-secondary smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">ReworkFG</h5>
+                <p class="card-text" id="reworkFG">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-repair smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">UnderRepairInRE</h5>
+                <p class="card-text" id="underRepairRE">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-online smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">UnderRepairInPD</h5>
+                <p class="card-text" id="underRepairPD">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-total smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">WaitingCheckOut</h5>
+                <p class="card-text" id="waitingCheckOut">N/A</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Donut Chart and Table -->
+<div class="row my-4 justify-content-center" style="align-items: center;">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body" style="display: flex; flex-direction: column;">
+                <h5 class="card-title">Trạng Thái</h5>
+                <canvas id="statusDonutChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body" style="display: flex; flex-direction: column;">
+                <h5 class="card-title">Aging Check In</h5>
+                <canvas id="agingDonutChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal for aging records -->
+<div class="modal fade" id="recordsModal" tabindex="-1" aria-labelledby="recordsModalLabel" aria-hidden="true">
+    <div class="modal-dialog  modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recordsModalLabel">Serial Numbers</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table id="recordsTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>SERIAL_NUMBER</th>
+                            <th>PRODUCT_LINE</th>
+                            <th>MODEL_NAME</th>
+                            <th>MO_NUMBER</th>
+                            <th>WIP_GROUP</th>
+                            <th>TEST_GROUP</th>
+                            <th>TEST_CODE</th>
+                            <th>TEST_TIME</th>
+                            <th>ERROR_DESC</th>
+                            <th>WORK_FLAG</th>
+                            <th>ERROR_FLAG</th>
+                            <th>CHECKIN_TIME</th>
+                            <th>AGING_DAY</th>
+                            <th>LOCATION</th>
+                            <th>STATUS</th>
+                            <th>NOTE</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row my-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <table id="sumMaterialsTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>SERIAL_NUMBER</th>
+                            <th>PRODUCT_LINE</th>
+                            <th>MODEL_NAME</th>
+                            <th>MO_NUMBER</th>
+                            <th>WIP_GROUP</th>
+                            <th>TEST_GROUP</th>
+                            <th>TEST_CODE</th>
+                            <th>TEST_TIME</th>
+                            <th>ERROR_DESC</th>
+                            <th>WORK_FLAG</th>
+                            <th>ERROR_FLAG</th>
+                            <th>CHECKIN_TIME</th>
+                            <th>AGING_DAY</th>
+                            <th>LOCATION</th>
+                            <th>STATUS</th>
+                            <th>NOTE</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/assets/areas/bonepile/js/bonepile.js?v=@DateTime.Now.Ticks"></script>
+    <style>
+
+        .smaller-card {
+            transform: scale(0.75); /* Reduce card size by 25% */
+            margin: 0 -5px; /* Minimize spacing between cards */
+        }
+
+        .smaller-text .card-title {
+            font-size: 1.3rem; /* Smaller title font size */
+        }
+
+        .smaller-text .card-text {
+            font-size: 1.3rem; /* Smaller text font size */
+        }
+
+        .kpi-cards {
+            display: flex;
+            flex-wrap: nowrap; /* Keep cards in a single row */
+        }
+
+            .kpi-cards .col-md-2,
+            .kpi-cards .col-lg-1,
+            .kpi-cards .col-sm-3,
+            .kpi-cards .col-3 {
+                flex: 0 0 12.5%; /* Divide equally for 7 cards (100% / 7) */
+                max-width: 12.5%; /* Ensure equal width */
+                padding: 0; /* Reduce padding for tighter fit */
+            }
+
+
+                    /* Định dạng bảng recordsTable */
+        #recordsTable th, #recordsTable td {
+            width: 120px !important;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #sumMaterialsTable th, #sumMaterialsTable td {
+            width: 120px !important;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .custom-tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+    </style>
+}

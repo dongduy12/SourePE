@@ -1,0 +1,362 @@
+﻿@{
+    ViewData["Title"] = "Check List Area";
+}
+@{
+    Layout = "~/Areas/CheckList/views/Shared/layout_CheckList.cshtml";
+}
+
+<div class="container">
+    <!-- Thanh tìm kiếm & Nút tạo mới -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <input type="text" class="form-control search-bar" placeholder="🔍 Search issues...">
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-create" data-bs-toggle="modal" data-bs-target="#createIssueModal">
+                <i class="fas fa-plus"></i> Create New Issue
+            </button>
+            <button class="btn btn-export"><i class="fas fa-download"></i> Download List</button>
+        </div>
+    </div>
+
+    <!-- Modal Create New Issue -->
+    <div class="modal fade" id="createIssueModal" tabindex="-1" aria-labelledby="createIssueModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="issueModalLabel">Create New Issue</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="issueForm">
+                        <div class="row g-3">
+                            <!-- Row 1 -->
+
+                            <div class="col-md-4">
+                                <label class="form-label">Publisher</label>
+                                <select class="form-select required" id="publisher">
+                                    <option value="" selected disabled>-- Select Department --</option>
+                                    <option value="PE">PE</option>
+                                    <option value="RE">RE</option>
+                                    <option value="PQE">PQE</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Time</label>
+                                <input type="datetime-local" class="form-control required" id="time">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Project</label>
+                                <!-- Ô nhập Project với danh sách gợi ý -->
+                                <input type="text" class="form-control required" id="project" list="projectSuggestions">
+                                <datalist id="projectSuggestions"></datalist>
+                            </div>
+
+                            <!-- Row 2 -->
+                            <div class="col-md-4">
+                                <label class="form-label">Model Name</label>
+                                <!-- Ô nhập Model Name với danh sách gợi ý -->
+                                <input type="text" class="form-control required" id="modelName" list="modelNameSuggestions">
+                                <datalist id="modelNameSuggestions"></datalist>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Station</label>
+                                <input type="text" class="form-control required" id="station">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Error</label>
+                                <input type="text" class="form-control required" id="error">
+                            </div>
+
+                            <!-- Row 3 -->
+                            <div class="col-md-4">
+                                <label class="form-label">Input</label>
+                                <input type="number" class="form-control required" id="input" min="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">NG q’ty</label>
+                                <input type="number" class="form-control required" id="ngQty" min="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Root Cause</label>
+                                <input type="text" class="form-control required" id="rootCause">
+                            </div>
+
+                            <!-- Row 4 -->
+                            <div class="col-md-4">
+                                <label class="form-label">Location (Optional)</label>
+                                <input type="text" class="form-control" id="location">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Picture (Optional)</label>
+                                <input type="file" class="form-control" id="locationPicture">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Status</label>
+                                <select class="form-select required" id="status">
+                                    <option value="" selected disabled>-- Select Status --</option>
+                                    <option value="Open">Open</option>
+                                    <option value="On-going">On-going</option>
+                                    <option value="Monitor">Monitor</option>
+                                    <option value="Closed">Closed</option>
+                                </select>
+                            </div>
+
+                            <!-- Row 5 -->
+                            <div class="col-md-4">
+                                <label class="form-label">Owner</label>
+                                <select class="form-select required" id="owner">
+                                    <option value="" selected disabled>-- Select Department --</option>
+                                    <option value="ME-SMT">ME-SMT</option>
+                                    <option value="ME-SI">ME-SI</option>
+                                    <option value="PD">PD</option>
+                                    <option value="TE">TE</option>
+                                    <option value="SQE">SQE</option>
+                                    <option value="RE">RE</option>
+                                    <option value="PE">PE</option>
+                                </select>
+                            </div>
+
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <span id="errorMessage" class="text-danger"></span>
+                    <button type="button" class="btn btn-primary" id="saveIssue">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Issue Details -->
+    <div class="modal fade" id="issueDetailsModal" tabindex="-1" aria-labelledby="issueDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content shadow-lg rounded-3">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="issueDetailsModalLabel">
+                        <i class="fas fa-info-circle"></i> Issue Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="issueDetails">
+                    <!-- Dữ liệu Issue sẽ hiển thị tại đây -->
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <div class="left-buttons">
+                        <button id="editIssue" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm d-none" id="saveIssueEdit">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Bảng hiển thị danh sách Issue -->
+    <div class="table-container">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Owner</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                    <th>Project</th>
+                    <th>Model Name</th>
+                    <th>Station</th>
+                    <th>Error</th>
+                    <th>Input</th>
+                    <th>NG q’ty</th>
+                    <th>DFR</th>
+                    <th>Root Cause</th>
+                    <th>Location</th>
+                    <th>FA</th>
+                    <th>Action</th>
+                    <th>Publisher</th>
+                    <th>Edit</th>
+                </tr>
+            </thead>
+            <tbody id="checklistTableBody">
+                <!-- Dữ liệu sẽ được hiển thị ở đây -->
+            </tbody>
+        </table>
+
+    </div>
+
+    <!-- Thanh phân trang -->
+    <div class="pagination-container d-flex justify-content-between align-items-center mt-3">
+        <div id="pagination"></div>
+        <div id="pageInfo" class="text-muted"></div>
+    </div>
+
+    <!-- Model hiển thị chi tiết issue -->
+
+
+</div>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
+    }
+
+    .container {
+        margin-top: 20px;
+    }
+
+    .search-bar {
+        max-width: 300px;
+    }
+
+    .btn-create {
+        background-color: #2563eb;
+        color: white;
+    }
+
+    .table-container {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 15px;
+        overflow-x: auto; /* Hiển thị thanh cuộn ngang nếu cần */
+        overflow-y: auto; /* Hiển thị thanh cuộn dọc nếu danh sách dài */
+        max-height: 500px; /* Giới hạn chiều cao */
+    }
+
+    .table {
+        min-width: 1200px; /* Đảm bảo bảng không bị bó hẹp */
+        table-layout: auto; /* Tự động căn chỉnh độ rộng */
+    }
+
+        .table th, .table td {
+            text-align: center;
+            vertical-align: middle;
+            padding: 5px;
+            border: 1px solid #dee2e6;
+            font-size: 14px; /* Giảm kích thước chữ */
+            line-height: 1.2; /* Giảm chiều cao chữ */
+            padding: 8px; /* Giảm khoảng cách giữa chữ và viền ô */
+        }
+
+        .table th {
+            background-color: #f3f4f6;
+            white-space: nowrap;
+            max-width: 150px; /* Giới hạn độ rộng của tiêu đề */
+        }
+
+        .table td {
+            text-align: center;
+            vertical-align: middle;
+            max-width: 250px; /* Giới hạn độ rộng */
+            white-space: nowrap; /* Không xuống dòng */
+            overflow: hidden; /* Ẩn nội dung vượt quá */
+            text-overflow: ellipsis; /* Hiển thị dấu "..." */
+            padding: 8px;
+        }
+
+    .badge {
+        font-size: 12px;
+        padding: 5px 8px;
+    }
+
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+    }
+
+    .btn-create {
+        background-color: #2563eb;
+        color: white;
+        padding: 8px 16px;
+        font-size: 14px;
+        border-radius: 5px;
+    }
+
+    .btn-export {
+        background-color: #28a745;
+        color: white;
+        padding: 8px 16px;
+        font-size: 14px;
+        border-radius: 5px;
+    }
+
+    .modal-content {
+        padding: 20px;
+    }
+
+    .modal-body .form-label {
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .modal-body input,
+    .modal-body select {
+        font-size: 14px;
+        padding: 8px;
+    }
+
+    .modal-footer {
+        padding: 10px;
+    }
+
+    #issueDetailsModal .modal-header {
+        background: linear-gradient(45deg, #1e3a8a, #2563eb);
+        color: white;
+        border-bottom: 3px solid #2563eb;
+    }
+
+    #issueDetailsModal .modal-body p {
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+
+        #issueDetailsModal .modal-body p strong {
+            color: #1e3a8a;
+        }
+
+    #issueDetailsModal img {
+        max-width: 100%;
+        border-radius: 5px;
+        margin-top: 15px;
+    }
+
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+    }
+
+    .status-open {
+        background-color: #2563eb;
+    }
+
+    .status-on-going {
+        background-color: #f59e0b;
+    }
+
+    .status-monitor {
+        background-color: #10b981;
+    }
+
+    .status-close {
+        background-color: #ef4444;
+    }
+
+    .left-buttons button {
+        margin-right: 10px;
+    }
+</style>
+
+@section Scripts {
+    <script src="~/assets/areas/checklist/js/listissue.js"></script>
+}
+

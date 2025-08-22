@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+	<ItemGroup>
+		<Folder Include="Areas\CheckList\Views\Home\" />
+		<Folder Include="Areas\CheckList\Views\ListIssue\" />
+		<Folder Include="Data\" />
+		<Folder Include="wwwroot\assets\Areas\CheckList\css\" />
+		<Folder Include="wwwroot\assets\Areas\Scrap\Material\css\" />
+		<Folder Include="wwwroot\assets\Areas\Scrap\css\" />
+		<Folder Include="wwwroot\lib\bootstrap\dist\js\" />
+		<Folder Include="wwwroot\lib\jquery-validation-unobtrusive\" />
+		<Folder Include="wwwroot\lib\jquery-validation\" />
+		<Folder Include="wwwroot\lib\jquery-validation\dist\" />
+		<Folder Include="wwwroot\lib\jquery\" />
+		<Folder Include="wwwroot\lib\jquery\dist\" />
+		<Folder Include="wwwroot\lib\jsgrid\" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<PackageReference Include="Aspose.Slides.NET" Version="25.4.0" />
+		<PackageReference Include="BuildBundlerMinifier2022" Version="2.9.11" />
+		<PackageReference Include="BundlerMinifier.Core" Version="3.2.449" />
+		<PackageReference Include="ClosedXML" Version="0.104.2" />
+		<PackageReference Include="EPPlus" Version="7.5.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.28" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="6.0.6" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\API_WEB\API_WEB.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Update="wwwroot\assets\vendor\bootstrap\js\bootstrap.bundle.min.js">
+			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+	</ItemGroup>
+
+</Project>

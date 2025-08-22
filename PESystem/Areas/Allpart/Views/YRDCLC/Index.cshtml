@@ -1,0 +1,321 @@
+﻿@{
+    ViewData["Title"] = "YR follow DC-LC";
+}
+@{
+    Layout = "~/Areas/Allpart/Views/Shared/layout_allpart.cshtml";
+}
+
+<link href="~/assets/css/yrdclc.css" rel="stylesheet" />
+
+<div class="card shadow-sm">
+    <div class="card-header bg-nvidia-green text-white">
+        <h1 class="h4 mb-0 text-center">YR follow DC/LC</h1>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-4 align-items-center">
+            <div class="date-time-range">
+                <label for="startDate">Bắt đầu:</label>
+                <input type="datetime-local" id="startDate" />
+                <label for="endDate">Kết thúc:</label>
+                <input type="datetime-local" id="endDate" />
+            </div>
+        </div>
+        <div class="row g-3 mb-4 align-items-center">
+            <div class="col-md-2">
+                <input id="model" name="model" class="form-control" placeholder="Model Name" />
+            </div>
+            <div class="col-md-2">
+                <input id="PN" name="PN" class="form-control" placeholder="Mã Liệu" />
+            </div>
+            <div class="col-md-2">
+                <input id="location" name="location" class="form-control" placeholder="Vị trí" />
+            </div>
+            <div class="col-md-2">
+                <input id="station" name="station" class="form-control" placeholder="Trạm test" />
+            </div>
+            <div class="col-md-2">
+                <input id="error" name="error" class="form-control" placeholder="Mã lỗi" />
+            </div>
+        </div>
+        <div class="row g-3 mb-4 align-items-center">
+            <div class="col-md-2">
+                <button onclick="search()" class="btn btn-nvidia-green w-100">Tìm kiếm</button>
+            </div>
+            <div class="col-md-2">
+                <button onclick="downloadExcel()" class="btn btn-nvidia-green w-100">Load data</button>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <div class="table-responsive align-items-center">
+                <table id="yrdcLcTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>MODEL_NAME</th>
+                            <th>MÃ_LIỆU</th>
+                            <th>DATE_CODE</th>
+                            <th>LOT_CODE</th>
+                            <th>VENDOR_NAME</th>
+                            <th>INPUT_QTY</th>
+                            <th>FAIL_QTY</th>
+                            <th>PASS_QTY</th>
+                            <th>DFR</th>
+                        </tr>
+                    </thead>
+                    <tbody id="yrdcLcTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+
+    <script>
+        let yrdcLcTable;
+        let snDataCache = []; // Lưu dữ liệu BY-FAIL-SN để xuất Excel
+
+        // Hàm tạo nội dung cho ô với tooltip
+        function createTooltipCell(data) {
+            return `<span class="tooltip-trigger" data-tooltip="${data || ''}">${data || ''}</span>`;
+        }
+
+        // Gắn sự kiện tooltip sử dụng event delegation
+        function attachTooltipEvents() {
+            $(document).on('mouseover', '.tooltip-trigger', function (e) {
+                const $this = $(this);
+                const tooltipText = $this.data('tooltip');
+                if (tooltipText) {
+                    let tooltip = document.querySelector('.custom-tooltip');
+                    if (!tooltip) {
+                        tooltip = document.createElement('div');
+                        tooltip.className = 'custom-tooltip';
+                        document.body.appendChild(tooltip);
+                    }
+                    tooltip.textContent = tooltipText;
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.pageX + 10) + 'px';
+                    tooltip.style.top = (e.pageY - 20) + 'px';
+                }
+            }).on('mousemove', '.tooltip-trigger', function (e) {
+                const tooltip = document.querySelector('.custom-tooltip');
+                if (tooltip && tooltip.style.display === 'block') {
+                    tooltip.style.left = (e.pageX + 10) + 'px';
+                    tooltip.style.top = (e.pageY - 20) + 'px';
+                }
+            }).on('mouseout', '.tooltip-trigger', function () {
+                const tooltip = document.querySelector('.custom-tooltip');
+                if (tooltip) {
+                    tooltip.style.display = 'none';
+                }
+            });
+        }
+
+        // Hàm định dạng ngày giờ từ datetime-local sang YYYY-MM-DD HH:MM:SS
+        function formatDateTime(dateTime) {
+            if (!dateTime) return '';
+            const date = new Date(dateTime);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        $(document).ready(function () {
+            // Khởi tạo DataTable
+            yrdcLcTable = $('#yrdcLcTable').DataTable({
+                pageLength: 10,
+                scrollX: true,
+                responsive: true,
+                columnDefs: [
+                    { targets: '_all', width: '150px' }
+                ]
+            });
+
+            // Gắn sự kiện tooltip
+            attachTooltipEvents();
+        });
+
+        async function search() {
+            const model = document.getElementById('model').value.trim();
+            const PN = document.getElementById('PN').value.trim();
+            const location = document.getElementById('location').value.trim();
+            const station = document.getElementById('station').value.trim();
+            const error = document.getElementById('error').value.trim();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            // Kiểm tra đầu vào
+            if (!model || !PN || !station || !error || !location || !startDate || !endDate) {
+                alert('Vui lòng nhập đầy đủ tất cả các trường!');
+                return;
+            }
+
+            // Định dạng thời gian
+            const formattedStartDate = formatDateTime(startDate);
+            const formattedEndDate = formatDateTime(endDate);
+
+            // Hiển thị loading overlay
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.innerHTML = `
+                <div class="spinner"></div>
+                <div>Đang tải dữ liệu, vui lòng chờ...</div>
+            `;
+            document.body.appendChild(loadingOverlay);
+
+            try {
+                // Làm mới bảng trước khi tìm kiếm
+                yrdcLcTable.clear();
+
+                // Lần gọi API đầu tiên (BY-FAIL-TOTAL)
+                const totalResponse = await fetch('http://10.220.130.119:9090/api/RepairStatus/check-yr-by-dclc', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type: 'GET_DC_LC',
+                        item: 'BY-FAIL-TOTAL',
+                        var_1: model,
+                        var_2: PN,
+                        var_3: formattedStartDate,
+                        var_4: formattedEndDate,
+                        var_5: station,
+                        var_6: error,
+                        var_7: location
+                    })
+                });
+
+                if (!totalResponse.ok) {
+                    throw new Error(`Lỗi khi gọi API BY-FAIL-TOTAL: ${await totalResponse.text()}`);
+                }
+
+                const totalData = await totalResponse.json();
+                if (!totalData.result || totalData.result.length === 0) {
+                    alert('Không tìm thấy dữ liệu từ API BY-FAIL-TOTAL!');
+                    document.body.removeChild(loadingOverlay);
+                    return;
+                }
+
+                // Hiển thị dữ liệu từ lần gọi đầu tiên vào bảng
+                totalData.result.forEach(item => {
+                    yrdcLcTable.row.add([
+                        createTooltipCell(item.p_no),
+                        createTooltipCell(item.kp_no),
+                        createTooltipCell(item.date_code),
+                        createTooltipCell(item.lot_code),
+                        createTooltipCell(item.mfr_name),
+                        createTooltipCell(item.input_qty),
+                        createTooltipCell(item.fail_qty),
+                        createTooltipCell(item.pass_qty),
+                        createTooltipCell(item.dfr)
+                    ]).draw();
+                });
+
+                // Lần gọi API thứ hai (BY-FAIL-SN)
+                const snResponse = await fetch('http://10.220.130.119:9090/api/RepairStatus/check-yr-by-dclc', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type: 'GET_DC_LC',
+                        item: 'BY-FAIL-SN',
+                        var_1: model,
+                        var_2: PN,
+                        var_3: formattedStartDate,
+                        var_4: formattedEndDate,
+                        var_5: station,
+                        var_6: error,
+                        var_7: location
+                    })
+                });
+
+                if (!snResponse.ok) {
+                    throw new Error(`Lỗi khi gọi API BY-FAIL-SN: ${await snResponse.text()}`);
+                }
+
+                const snData = await snResponse.json();
+                if (!snData.result || snData.result.length === 0) {
+                    console.warn('Không có dữ liệu từ API BY-FAIL-SN.');
+                } else {
+                    // Lưu dữ liệu BY-FAIL-SN để xuất Excel
+                    snDataCache = snData.result;
+                }
+
+                // Gắn sự kiện tooltip
+                attachTooltipEvents();
+
+            } catch (error) {
+                alert(`Đã xảy ra lỗi: ${error.message}`);
+            } finally {
+                // Xóa loading overlay
+                if (document.body.contains(loadingOverlay)) {
+                    document.body.removeChild(loadingOverlay);
+                }
+            }
+        }
+
+        function downloadExcel() {
+            if (!snDataCache.length && !yrdcLcTable.rows().data().toArray().length) {
+                alert('Không có dữ liệu để tải xuống Excel!');
+                return;
+            }
+
+            // Dữ liệu cho sheet 1 (từ bảng yrdcLcTable)
+            const totalData = [
+                ['MODEL_NAME', 'MÃ_LIỆU', 'DATE_CODE', 'LOT_CODE', 'VENDOR_NAME', 'INPUT_QTY', 'FAIL_QTY', 'PASS_QTY', 'DFR']
+            ];
+            yrdcLcTable.rows().data().toArray().forEach(row => {
+                const rowData = Array.from(row).map(cell => {
+                    const div = document.createElement('div');
+                    div.innerHTML = cell;
+                    return div.textContent || '';
+                });
+                totalData.push(rowData);
+            });
+
+            // Dữ liệu cho sheet 2 (từ snDataCache)
+            const snData = [
+                ['P_SN', 'WO', 'P_NO', 'TR_SN', 'KP_NO', 'MFR_KP_NO', 'DATE_CODE', 'LOT_CODE', 'MFR_NAME', 'PROCESS_FLAG', 'STATION', 'GROUP_NAME', 'WORK_TIME', 'REF_DES', 'TEST_CODE', 'TEST_GROUP']
+            ];
+            snDataCache.forEach(item => {
+                snData.push([
+                    item.p_sn,
+                    item.wo,
+                    item.p_no,
+                    item.tr_sn,
+                    item.kp_no,
+                    item.mfr_kp_no,
+                    item.date_code,
+                    item.lot_code,
+                    item.mfr_name,
+                    item.process_flag,
+                    item.station,
+                    item.group_name,
+                    item.work_time,
+                    item.ref_des,
+                    item.test_code,
+                    item.test_group
+                ]);
+            });
+
+            // Tạo worksheet cho sheet 1
+            const ws1 = XLSX.utils.aoa_to_sheet(totalData);
+            // Tạo worksheet cho sheet 2
+            const ws2 = XLSX.utils.aoa_to_sheet(snData);
+
+            // Tạo workbook và thêm các sheet
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws1, "Total_Data");
+            XLSX.utils.book_append_sheet(wb, ws2, "SN_Data");
+
+            // Xuất file Excel
+            XLSX.writeFile(wb, 'yrdc_lc_data_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+        }
+    </script>
+}

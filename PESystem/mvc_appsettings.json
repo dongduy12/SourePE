@@ -1,0 +1,13 @@
+{
+  "ConnectionStrings": {
+    "cnn": "Server=10.220.130.119,5999;Database=SystemPE;User Id=PE-05;Password=Foxconn168!!;TrustServerCertificate=True;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+  ,"ApiBaseUrl": "http://10.220.130.119:9090"
+}
