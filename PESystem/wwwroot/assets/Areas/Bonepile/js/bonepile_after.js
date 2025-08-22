@@ -12,7 +12,8 @@
         "WatitingScrap",
         "ApproveBGA",
         "RepairInRE",
-        "WaitingLink"
+        "WaitingLink",
+        "Linked"
     ];
 
     const statusColorMap = {
@@ -21,7 +22,8 @@
         "WatitingScrap": "#dc3545",
         "RepairInRE": "#ff8307",
         "ApproveBGA": "#17b86d",
-        "WaitingLink": "#17a2b8"
+        "WaitingLink": "#17a2b8",
+        "Linked": "#e3a2b8"
     };
 
     let dataTable;
@@ -84,6 +86,7 @@
             document.getElementById("repairInRE").innerText = statusCounts.find(s => s.status === "RepairInRE")?.count || 0;
             document.getElementById("waitingBGA").innerText = statusCounts.find(s => s.status === "ApproveBGA")?.count || 0;
             document.getElementById("waitingLink").innerText = statusCounts.find(s => s.status === "WaitingLink")?.count || 0;
+            document.getElementById("linked").innerText = statusCounts.find(s => s.status === "Linked")?.count || 0;
 
             // Tính phần trăm cho biểu đồ
             const total = statusCounts.reduce((sum, s) => sum + s.count, 0);
@@ -326,6 +329,7 @@
                                                                             <option value="WatitingScrap">Waiting SPE Approve Scrap</option>
                                                                             <option value="RepairInRE">Under Repair in RE</option>
                                                                             <option value="WaitingLink">Waiting Link</option>
+                                                                            <option value="Linked">Linked</option>
                                                                         </select>
                                                                     </div>
                                                                 `;
@@ -379,7 +383,6 @@
                     info: true,
                     columns: [
                         { data: "sn" },
-                        { data: "fg" },
                         { data: "productLine" },
                         { data: "modelName" },
                         { data: "moNumber" },

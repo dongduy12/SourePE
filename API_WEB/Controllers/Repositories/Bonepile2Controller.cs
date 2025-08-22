@@ -1006,7 +1006,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 );
 
                 var exportRecords = await _sqlContext.Exports
-                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()))
+                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()) && e.CheckingB36R > 0 && e.CheckingB36R < 3)
                     .ToListAsync();
 
                 var exportDict = exportRecords
@@ -1060,7 +1060,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                                 status = "RepairInRE";
                             }
                         }
-                        else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
+                        else
                         {
                             if (exportDict.TryGetValue(sn, out var exportInfo))
                             {
@@ -1083,10 +1083,6 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             {
                                 status = "RepairInRE";
                             }
-                        }
-                        else
-                        {
-                            status = "RepairInRE";
                         }
                         return new
                         {
@@ -1128,70 +1124,6 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 return StatusCode(500, new { message = "Xay ra loi", error = ex.Message });
             }
         }
-
-        [HttpGet("bonepile-after-kanban-aging-count")]
-        public async Task<IActionResult> BonepileAfterKanbanAgingCount()
-        {
-            try
-            {
-                var allData = await ExecuteBonepileAfterKanbanQuery();
-
-                var excludedSNs = GetExcludedSerialNumbers();
-                if (excludedSNs.Any())
-                {
-                    allData = allData.Where(d => !excludedSNs.Contains(d.SERIAL_NUMBER?.Trim().ToUpper())).ToList();
-                }
-
-                var records = allData
-                    .Select(b => new
-                    {
-                        SN = b.SERIAL_NUMBER,
-                        ModelName = b.MODEL_NAME,
-                        MoNumber = b.MO_NUMBER,
-                        ProductLine = b.PRODUCT_LINE,
-                        WipGroupSFC = b.WIP_GROUP_SFC,
-                        WipGroupKANBAN = b.WIP_GROUP_KANBAN,
-                        testTime = b.TEST_TIME,
-                        testCode = b.TEST_CODE,
-                        errorDesc = b.ERROR_DESC,
-                        testGroup = b.TEST_GROUP,
-                        errorFlag = b.ERROR_FLAG,
-                        aging = b.AGING
-                    })
-                    .ToList();
-
-                var agingGroups = records
-                    .GroupBy(r =>
-                    {
-                        if (r.aging.HasValue)
-                        {
-                            var aging = r.aging.Value;
-                            if (aging < 30) return "<30";
-                            if (aging <= 90) return "30-90";
-                            return ">90";
-                        }
-                        return "Unknown";
-                    })
-                    .Select(g => new
-                    {
-                        AgeRange = g.Key,
-                        Count = g.Count(),
-                        Records = g.ToList()
-                    })
-                    .ToList();
-
-                return Ok(new
-                {
-                    totalCount = records.Count,
-                    agingCounts = agingGroups
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
-            }
-        }
-
         [HttpGet("bonepile-after-kanban-count")]
         public async Task<IActionResult> BonepileAfterKanbanCount()
         {
@@ -1221,7 +1153,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 );
 
                 var exportRecords = await _sqlContext.Exports
-                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()))
+                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()) && e.CheckingB36R > 0 && e.CheckingB36R < 3)
                     .ToListAsync();
 
                 var exportDict = exportRecords
@@ -1264,7 +1196,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             status = "RepairInRE";
                         }
                     }
-                    else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
+                    else
                     {
                         if (exportDict.TryGetValue(sn, out var exportInfo))
                         {
@@ -1288,10 +1220,6 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             status = "RepairInRE";
                         }
                     }
-                    else
-                    {
-                        status = "RepairInRE";
-                    }
                     return status;
                 }).ToList();
                 var statusCounts = result
@@ -1306,6 +1234,70 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 {
                     totalCount = result.Count,
                     statusCounts = statusCounts
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+            }
+        }
+
+
+        [HttpGet("bonepile-after-kanban-aging-count")]
+        public async Task<IActionResult> BonepileAfterKanbanAgingCount()
+        {
+            try
+            {
+                var allData = await ExecuteBonepileAfterKanbanQuery();
+
+                var excludedSNs = GetExcludedSerialNumbers();
+                if (excludedSNs.Any())
+                {
+                    allData = allData.Where(d => !excludedSNs.Contains(d.SERIAL_NUMBER?.Trim().ToUpper())).ToList();
+                }
+
+                var records = allData
+                    .Select(b => new
+                    {
+                        SN = b.SERIAL_NUMBER,
+                        ModelName = b.MODEL_NAME,
+                        MoNumber = b.MO_NUMBER,
+                        ProductLine = b.PRODUCT_LINE,
+                        WipGroupSFC = b.WIP_GROUP_SFC,
+                        WipGroupKANBAN = b.WIP_GROUP_KANBAN,
+                        testTime = b.TEST_TIME,
+                        testCode = b.TEST_CODE,
+                        errorDesc = b.ERROR_DESC,
+                        testGroup = b.TEST_GROUP,
+                        errorFlag = b.ERROR_FLAG,
+                        aging = b.AGING
+                    })
+                    .ToList();
+
+                var agingGroups = records
+                    .GroupBy(r =>
+                    {
+                        if (r.aging.HasValue)
+                        {
+                            var aging = r.aging.Value;
+                            if (aging < 30) return "<30";
+                            if (aging <= 90) return "30-90";
+                            return ">90";
+                        }
+                        return ">90";
+                    })
+                    .Select(g => new
+                    {
+                        AgeRange = g.Key,
+                        Count = g.Count(),
+                        Records = g.ToList()
+                    })
+                    .ToList();
+
+                return Ok(new
+                {
+                    totalCount = records.Count,
+                    agingCounts = agingGroups
                 });
             }
             catch (Exception ex)
