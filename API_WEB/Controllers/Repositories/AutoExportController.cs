@@ -234,7 +234,7 @@ namespace API_WEB.Controllers.Repositories
                     {
                         linked = true;
                     }
-                    else if (!(wipGroup.Contains("B36R") && !string.IsNullOrEmpty(wipGroupR107) && wipGroupR107.Contains("B36R")))
+                    else if (!(!string.IsNullOrEmpty(wipGroupR107) && wipGroupR107.Contains("B36R")))
                     {
                         linked = true;
                     }

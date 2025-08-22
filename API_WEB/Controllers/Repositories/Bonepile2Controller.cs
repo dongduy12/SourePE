@@ -1005,20 +1005,24 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                     StringComparer.OrdinalIgnoreCase
                 );
 
-                var exportSerials = await _sqlContext.Exports
-                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()) && e.CheckingB36R > 0)
-                    .Select(e => e.SerialNumber)
+                var exportRecords = await _sqlContext.Exports
+                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()) && e.CheckingB36R > 0 && e.CheckingB36R < 3)
                     .ToListAsync();
 
-                var exportSet = new HashSet<string>(
-                    exportSerials.Select(sn => sn.Trim().ToUpper()),
-                    StringComparer.OrdinalIgnoreCase);
+                var exportDict = exportRecords
+                    .GroupBy(e => e.SerialNumber?.Trim().ToUpper() ?? "")
+                    .Select(g => g.OrderByDescending(e => e.ExportDate).First())
+                    .ToDictionary(
+                        e => e.SerialNumber.Trim().ToUpper(),
+                        e => (e.CheckingB36R, e.ExportDate),
+                        StringComparer.OrdinalIgnoreCase);
 
                 var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "ScrapLackTask",
                     "ScrapHasTask",
                     "WaitingLink",
+                    "Linked",
                     "WatitingScrap",
                     "ApproveBGA",
                     "WaitingApproveBGA",
@@ -1056,25 +1060,29 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                                 status = "RepairInRE";
                             }
                         }
-                        else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
+                        else
                         {
-                            //var wipSfc = b.WIP_GROUP_SFC?.Trim();
-                            //if (!string.IsNullOrEmpty(wipSfc) && wipSfc.IndexOf("B36R", StringComparison.OrdinalIgnoreCase) < 0)
-                            //{
-                            //    status = "Linked";
-                            //}
-                            if (exportSet.Contains(sn))
+                            if (exportDict.TryGetValue(sn, out var exportInfo))
                             {
-                                status = "WaitingLink";
+                                var testTime = b.TEST_TIME;
+                                if (exportInfo.ExportDate.HasValue && testTime.HasValue && exportInfo.ExportDate < testTime)
+                                {
+                                    status = "RepairInRE";
+                                }
+                                else
+                                {
+                                    status = exportInfo.CheckingB36R switch
+                                    {
+                                        1 => "WaitingLink",
+                                        2 => "Linked",
+                                        _ => "RepairInRE",
+                                    };
+                                }
                             }
                             else
                             {
                                 status = "RepairInRE";
                             }
-                        }
-                        else
-                        {
-                            status = "RepairInRE";
                         }
                         return new
                         {
@@ -1116,6 +1124,124 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 return StatusCode(500, new { message = "Xay ra loi", error = ex.Message });
             }
         }
+        [HttpGet("bonepile-after-kanban-count")]
+        public async Task<IActionResult> BonepileAfterKanbanCount()
+        {
+            try
+            {
+                var repairTaskData = await ExecuteBonepileAfterKanbanQuery();
+
+                var excludedSNs = GetExcludedSerialNumbers();
+                if (excludedSNs.Any())
+                {
+                    repairTaskData = repairTaskData.Where(d => !excludedSNs.Contains(d.SERIAL_NUMBER?.Trim().ToUpper())).ToList();
+                }
+
+                var snList = repairTaskData
+                    .Select(d => d.SERIAL_NUMBER?.Trim().ToUpper())
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToList();
+
+                var scrapCategories = await _sqlContext.ScrapLists
+                    .Where(s => snList.Contains(s.SN.Trim().ToUpper()))
+                    .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
+                    .ToListAsync();
+                var scrapDict = scrapCategories.ToDictionary(
+                    c => c.SN?.Trim().ToUpper() ?? "",
+                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+                var exportRecords = await _sqlContext.Exports
+                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()) && e.CheckingB36R > 0 && e.CheckingB36R < 3)
+                    .ToListAsync();
+
+                var exportDict = exportRecords
+                    .GroupBy(e => e.SerialNumber?.Trim().ToUpper() ?? "")
+                    .Select(g => g.OrderByDescending(e => e.ExportDate).First())
+                    .ToDictionary(
+                        e => e.SerialNumber.Trim().ToUpper(),
+                        e => (e.CheckingB36R, e.ExportDate),
+                        StringComparer.OrdinalIgnoreCase);
+
+                var result = repairTaskData.Select(b =>
+                {
+                    var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
+                    string status;
+
+                    var groupKanban = b.WIP_GROUP_KANBAN?.Trim();
+
+                    if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                    {
+                        var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+
+                        if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
+                        {
+                            status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                        }
+                        else if (applyTaskStatus == 2)
+                        {
+                            status = "WatitingScrap";
+                        }
+                        else if (applyTaskStatus == 3)
+                        {
+                            status = "ApproveBGA";
+                        }
+                        else if (applyTaskStatus == 4)
+                        {
+                            status = "WaitingApproveBGA";
+                        }
+                        else
+                        {
+                            status = "RepairInRE";
+                        }
+                    }
+                    else
+                    {
+                        if (exportDict.TryGetValue(sn, out var exportInfo))
+                        {
+                            var testTime = b.TEST_TIME;
+                            if (exportInfo.ExportDate.HasValue && testTime.HasValue && exportInfo.ExportDate < testTime)
+                            {
+                                status = "RepairInRE";
+                            }
+                            else
+                            {
+                                status = exportInfo.CheckingB36R switch
+                                {
+                                    1 => "WaitingLink",
+                                    2 => "Linked",
+                                    _ => "RepairInRE",
+                                };
+                            }
+                        }
+                        else
+                        {
+                            status = "RepairInRE";
+                        }
+                    }
+                    return status;
+                }).ToList();
+                var statusCounts = result
+                    .GroupBy(status => status)
+                    .Select(g => new
+                    {
+                        Status = g.Key,
+                        Count = g.Count()
+                    })
+                    .ToList();
+                return Ok(new
+                {
+                    totalCount = result.Count,
+                    statusCounts = statusCounts
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+            }
+        }
+
 
         [HttpGet("bonepile-after-kanban-aging-count")]
         public async Task<IActionResult> BonepileAfterKanbanAgingCount()
@@ -1158,7 +1284,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             if (aging <= 90) return "30-90";
                             return ">90";
                         }
-                        return "Unknown";
+                        return ">90";
                     })
                     .Select(g => new
                     {
@@ -1172,117 +1298,6 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 {
                     totalCount = records.Count,
                     agingCounts = agingGroups
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
-            }
-        }
-
-        [HttpGet("bonepile-after-kanban-count")]
-        public async Task<IActionResult> BonepileAfterKanbanCount()
-        {
-            try
-            {
-                var repairTaskData = await ExecuteBonepileAfterKanbanQuery();
-
-                var excludedSNs = GetExcludedSerialNumbers();
-                if (excludedSNs.Any())
-                {
-                    repairTaskData = repairTaskData.Where(d => !excludedSNs.Contains(d.SERIAL_NUMBER?.Trim().ToUpper())).ToList();
-                }
-
-                var snList = repairTaskData
-                    .Select(d => d.SERIAL_NUMBER?.Trim().ToUpper())
-                    .Where(s => !string.IsNullOrEmpty(s))
-                    .ToList();
-
-                var scrapCategories = await _sqlContext.ScrapLists
-                    .Where(s => snList.Contains(s.SN.Trim().ToUpper()))
-                    .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
-                    .ToListAsync();
-                var scrapDict = scrapCategories.ToDictionary(
-                    c => c.SN?.Trim().ToUpper() ?? "",
-                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
-                    StringComparer.OrdinalIgnoreCase
-                );
-
-                var exportSerials = await _sqlContext.Exports
-                    .Where(e => snList.Contains(e.SerialNumber.Trim().ToUpper()) && e.CheckingB36R > 0)
-                    .Select(e => e.SerialNumber)
-                    .ToListAsync();
-
-                var exportSet = new HashSet<string>(
-                    exportSerials.Select(sn => sn.Trim().ToUpper()),
-                    StringComparer.OrdinalIgnoreCase);
-
-                var result = repairTaskData.Select(b =>
-                {
-                    var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
-                    string status;
-
-                    var groupKanban = b.WIP_GROUP_KANBAN?.Trim();
-
-                    if (scrapDict.TryGetValue(sn, out var scrapInfo))
-                    {
-                        var applyTaskStatus = scrapInfo.ApplyTaskStatus;
-
-                        if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
-                        {
-                            status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
-                        }
-                        else if (applyTaskStatus == 2)
-                        {
-                            status = "WatitingScrap";
-                        }
-                        else if (applyTaskStatus == 3)
-                        {
-                            status = "ApproveBGA";
-                        }
-                        else if (applyTaskStatus == 4)
-                        {
-                            status = "WaitingApproveBGA";
-                        }
-                        else
-                        {
-                            status = "RepairInRE";
-                        }
-                    }
-                    else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        var wipSfc = b.WIP_GROUP_SFC?.Trim();
-                        if (!string.IsNullOrEmpty(wipSfc) && wipSfc.IndexOf("B36R", StringComparison.OrdinalIgnoreCase) < 0)
-                        {
-                            status = "Linked";
-                        }
-                        else if (exportSet.Contains(sn))
-                        {
-                            status = "WaitingLink";
-                        }
-                        else
-                        {
-                            status = "RepairInRE";
-                        }
-                    }
-                    else
-                    {
-                        status = "RepairInRE";
-                    }
-                    return status;
-                }).ToList();
-                var statusCounts = result
-                    .GroupBy(status => status)
-                    .Select(g => new
-                    {
-                        Status = g.Key,
-                        Count = g.Count()
-                    })
-                    .ToList();
-                return Ok(new
-                {
-                    totalCount = result.Count,
-                    statusCounts = statusCounts
                 });
             }
             catch (Exception ex)

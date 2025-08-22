@@ -4,7 +4,6 @@
     const apiAgingCountUrl = `${apiBase}/bonepile-after-kanban-aging-count`;
     const apiDetailUrl = `${apiBase}/bonepile-after-kanban`;
     const locationUrl = 'http://10.220.130.119:9090/api/Search/GetLocations';
-
     // Định nghĩa tất cả trạng thái hợp lệ
     const validStatuses = [
         "ScrapHasTask",
