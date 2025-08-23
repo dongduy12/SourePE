@@ -38,6 +38,19 @@
         "Unknown": "#6c757d"
     };
 
+    async function fetchNotesForSerials(serials) {
+        const map = {};
+        for (const sn of serials) {
+            try {
+                const res = await axios.get(`${noteUrl}/${sn}`);
+                map[sn] = res.data?.data || '';
+            } catch (err) {
+                console.error('Error fetching note for', sn, err);
+            }
+        }
+        return map;
+    }
+
     let dataTable;
     let modalTable;
 
@@ -231,12 +244,7 @@
             }
             let noteMap = {};
             try {
-                const noteRes = await Promise.all(
-                    serials.map(sn => axios.get(`${noteUrl}/${sn}`))
-                );
-                noteRes.forEach((res, idx) => {
-                    noteMap[serials[idx]] = res.data?.data || '';
-                });
+                noteMap = await fetchNotesForSerials(serials);
             } catch (err) {
                 console.error('Error fetching notes', err);
             }
@@ -360,12 +368,7 @@
             }
             let noteMap = {};
             try {
-                const noteRes = await Promise.all(
-                    serials.map(sn => axios.get(`${noteUrl}/${sn}`))
-                );
-                noteRes.forEach((res, idx) => {
-                    noteMap[serials[idx]] = res.data?.data || '';
-                });
+                noteMap = await fetchNotesForSerials(serials);
             } catch (err) {
                 console.error('Error fetching notes for modal', err);
             }

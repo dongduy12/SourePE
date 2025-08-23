@@ -7,6 +7,19 @@ document.addEventListener('DOMContentLoaded', async function () {
     const locationUrl = 'http://10.220.130.119:9090/api/Search/GetLocations';
     const noteUrl = 'http://10.220.130.119:9090/api/RepairTaskDetail/data19';
 
+    async function fetchNotesForSerials(serials) {
+        const map = {};
+        for (const sn of serials) {
+            try {
+                const res = await axios.get(`${noteUrl}/${sn}`);
+                map[sn] = res.data?.data || '';
+            } catch (err) {
+                console.error('Error fetching note for', sn, err);
+            }
+        }
+        return map;
+    }
+
     const beforeStatuses = [
         'Scrap Lacks Task',
         'Scrap Has Scrap',
@@ -166,12 +179,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             ].filter(Boolean)));
             let noteMap = {};
             try {
-                const noteRes = await Promise.all(
-                    allSerials.map(sn => axios.get(`${noteUrl}/${sn}`))
-                );
-                noteRes.forEach((res, idx) => {
-                    noteMap[allSerials[idx]] = res.data?.data || '';
-                });
+                noteMap = await fetchNotesForSerials(allSerials);
             } catch (err) {
                 console.error('Error fetching notes', err);
             }
