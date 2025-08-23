@@ -211,21 +211,47 @@ namespace API_WEB.Controllers.Repositories
             {
                 return;
             }
-
-            var serialNumbers = exports.Select(e => e.SerialNumber).Distinct().ToList();
+            // Danh sách SN tương ứng
+            var serialNumbers = exports
+                .Select(e => e.SerialNumber)
+                .Where(sn => !string.IsNullOrEmpty(sn))
+                .Distinct()
+                .ToList();
+            
+            // Tra cứu ExportDate mới nhất cho từng SN trên toàn bảng Exports (tránh N+1)
+            var latestExportDates = await _sqlContext.Exports
+                .Where(e => serialNumbers.Contains(e.SerialNumber))
+                .GroupBy(e => e.SerialNumber)
+                .Select(g => new
+                {
+                    SerialNumber = g.Key,
+                    Latest = g.Max(x => x.ExportDate)
+                })
+                .ToDictionaryAsync(x => x.SerialNumber, x => x.Latest);
 
             await using var oracleConnection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
             await oracleConnection.OpenAsync();
+
             var wipGroups = await GetWipGroupsFromOracleAsync(oracleConnection, serialNumbers);
             var r107Infos = await GetR107InfoAsync(oracleConnection, serialNumbers);
 
             foreach (var exp in exports)
             {
                 var sn = exp.SerialNumber;
-                var wipGroup = wipGroups.ContainsKey(sn) ? wipGroups[sn] : null;
-                var r107Info = r107Infos.ContainsKey(sn) ? r107Infos[sn] : (null, null);
-                var moNumber = r107Info.MoNumber;
+
+                var wipGroup = wipGroups.TryGetValue(sn, out var wg) ? wg : null;
+                var r107Info = r107Infos.TryGetValue(sn, out var info) ? info : (MoNumber: (string)null, WipGroup: (string)null);
                 var wipGroupR107 = r107Info.WipGroup;
+
+                // Xác định bản ghi export hiện tại có phải ExportDate mới nhất theo SN
+                var isLatestExport =
+                    latestExportDates.TryGetValue(sn, out var latestDate)
+                    && exp.ExportDate.HasValue
+                    && latestDate.HasValue
+                    && exp.ExportDate.Value == latestDate.Value;
+
+                bool containsB36R_TO_SFG = !string.IsNullOrEmpty(wipGroup) && wipGroup.Contains("B36R");
+                bool r107ContainsB36R = !string.IsNullOrEmpty(wipGroupR107) && wipGroupR107.Contains("B36R") && !wipGroupR107.Contains("REPAIR_B36R");
 
                 var linked = false;
                 if (!string.IsNullOrEmpty(wipGroup) && wipGroup.Contains("B36R_TO_SFG"))
@@ -239,6 +265,7 @@ namespace API_WEB.Controllers.Repositories
                         linked = true;
                     }
                 }
+
                 else if (!string.IsNullOrEmpty(wipGroup) &&
                          (wipGroup.Contains("KANBAN_IN") || wipGroup.Contains("KANBAN_OUT")))
                 {
@@ -257,80 +284,137 @@ namespace API_WEB.Controllers.Repositories
                     }
                     exp.CheckingB36R = 2;
                 }
-            }
 
+                // ===== Điều kiện mới: chỉ nâng lên 4 khi đang = 2 và là export mới nhất =====
+                if (exp.CheckingB36R == 2
+                    && containsB36R_TO_SFG
+                    && exp.LinkTime.HasValue
+                    && r107ContainsB36R
+                    && isLatestExport)
+                {
+                    exp.CheckingB36R = 4;//Loi quay lai RE
+                }
+
+            }
             await _sqlContext.SaveChangesAsync();
         }
-
 
         [HttpGet("checking-b36r")]
         public async Task<IActionResult> CheckingB36R(DateTime? startDate, DateTime? endDate)
         {
             try
             {
-                var query = _sqlContext.Exports
+                // Validate khoảng thời gian (nếu có đủ 2 đầu)
+                if (startDate.HasValue && endDate.HasValue && startDate > endDate)
+                {
+                    return BadRequest(new { success = false, message = "Khoảng thời gian không hợp lệ (startDate > endDate)." });
+                }
+
+                // Base: chỉ quan tâm 2 trạng thái 1/2
+                var baseQuery = _sqlContext.Exports
                     .Where(e => e.CheckingB36R == 1 || e.CheckingB36R == 2);
 
+                // Nếu có truyền thời gian => lọc theo ExportDate
+                IQueryable<Export> rangeQuery = baseQuery;
+                bool hasRange = startDate.HasValue || endDate.HasValue;
                 if (startDate.HasValue)
-                {
-                    query = query.Where(e =>
-                        (e.CheckingB36R == 1 && e.ExportDate >= startDate.Value) ||
-                        (e.CheckingB36R == 2 && e.LinkTime >= startDate.Value));
-                }
-
+                    rangeQuery = rangeQuery.Where(e => e.ExportDate >= startDate.Value);
                 if (endDate.HasValue)
-                {
-                    query = query.Where(e =>
-                        (e.CheckingB36R == 1 && e.ExportDate <= endDate.Value) ||
-                        (e.CheckingB36R == 2 && e.LinkTime <= endDate.Value));
-                }
+                    rangeQuery = rangeQuery.Where(e => e.ExportDate <= endDate.Value);
 
-                var exports = await query
+                // Bước 1: Lấy danh sách theo khoảng thời gian (nếu có) + khử trùng trong khoảng theo ExportDate mới nhất
+                // Tie-break: LinkTime mới hơn
+                // Lưu ý: EF Core có thể dịch GroupBy + First() với OrderBy trong Select; mẫu này cùng kiểu với code trước đó
+                var exportsInWindow = await rangeQuery
                     .GroupBy(e => e.SerialNumber)
                     .Select(g => g.OrderByDescending(x => x.ExportDate)
-                        .ThenByDescending(x => x.LinkTime)
-                        .First())
+                                  .ThenByDescending(x => x.LinkTime)
+                                  .First())
                     .ToListAsync();
 
-                var awaiting = exports
-                    .Where(e => e.CheckingB36R == 1)
-                    .Select(e => new
-                    {
-                        SN = e.SerialNumber,
-                        ProductLine = e.ProductLine,
-                        ModelName = e.ModelName,
-                        ExportDate = e.ExportDate.HasValue ? e.ExportDate.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
-                        LinkTime = e.LinkTime.HasValue ? e.LinkTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
-                        Status = "Chờ Link MO"
-                    })
+                // Nếu không truyền khoảng thời gian, giữ hành vi cũ: lấy record mới nhất (ExportDate, rồi LinkTime) cho mỗi SN
+                if (!hasRange)
+                {
+                    exportsInWindow = await baseQuery
+                        .GroupBy(e => e.SerialNumber)
+                        .Select(g => g.OrderByDescending(x => x.ExportDate)
+                                      .ThenByDescending(x => x.LinkTime)
+                                      .First())
+                        .ToListAsync();
+                }
+
+                if (exportsInWindow == null || exportsInWindow.Count == 0)
+                {
+                    return Ok(new { success = false, message = "Không tìm thấy Serial Number phù hợp." });
+                }
+
+                // Danh sách SN trong kết quả (để tra trạng thái hiện tại)
+                var snList = exportsInWindow
+                    .Select(e => e.SerialNumber)
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .Distinct()
                     .ToList();
 
-                var linked = exports
-                    .Where(e => e.CheckingB36R == 2)
-                    .Select(e => new
+                // Bước 2: Xác định trạng thái hiện tại cho từng SN (mới nhất toàn cục, không giới hạn thời gian)
+                var latestBySn = await _sqlContext.Exports
+                    .Where(e => snList.Contains(e.SerialNumber))
+                    .GroupBy(e => e.SerialNumber)
+                    .Select(g => g.OrderByDescending(x => x.ExportDate)
+                                  .ThenByDescending(x => x.LinkTime)
+                                  .First())
+                    .ToListAsync();
+
+                var latestDict = latestBySn.ToDictionary(
+                    k => k.SerialNumber,
+                    v => v.CheckingB36R
+                );
+
+                // Bước 3: Gắn status hiện tại vào kết quả trong khoảng thời gian
+                var shaped = exportsInWindow.Select(e =>
+                {
+                    var currentStatus = latestDict.TryGetValue(e.SerialNumber, out var s) ? s : e.CheckingB36R;
+                    var statusText = currentStatus == 1 ? "Chờ Link MO"
+                                 : currentStatus == 2 ? "Đã link MO"
+                                 : "Không xác định";
+
+                    return new
                     {
                         SN = e.SerialNumber,
                         ProductLine = e.ProductLine,
                         ModelName = e.ModelName,
                         ExportDate = e.ExportDate.HasValue ? e.ExportDate.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
                         LinkTime = e.LinkTime.HasValue ? e.LinkTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
-                        Status = "Đã link MO"
-                    })
-                    .ToList();
+                        Status = statusText,
+                        CheckingB36R = currentStatus
+                    };
+                }).ToList();
+
+                // Chia nhóm theo trạng thái hiện tại
+                var awaiting = shaped.Where(x => x.CheckingB36R == 1).ToList();
+                var linked = shaped.Where(x => x.CheckingB36R == 2).ToList();
 
                 if (!awaiting.Any() && !linked.Any())
                 {
-                    return Ok(new { success = false, message = "Không có Serial Number nào được đánh dấu B36R." });
+                    return Ok(new { success = false, message = "Không có Serial Number nào ở trạng thái Chờ Link/Đã Link." });
                 }
 
                 return Ok(new
                 {
                     success = true,
+                    // Tổng các SN trong khoảng (đã khử trùng theo ExportDate)
+                    totalCount = shaped.Count,
+
+                    // Đếm theo trạng thái hiện tại
                     awaitingLinkCount = awaiting.Count,
                     linkCount = linked.Count,
+
+                    // Dữ liệu chi tiết
                     awaiting,
                     linked,
-                    message = "Thống kê Link MO."
+
+                    message = hasRange
+                        ? "Thống kê Link MO theo khoảng ExportDate (status theo trạng thái hiện tại)."
+                        : "Thống kê Link MO mới nhất (status theo trạng thái hiện tại)."
                 });
             }
             catch (Exception ex)
@@ -339,5 +423,6 @@ namespace API_WEB.Controllers.Repositories
                 return StatusCode(500, new { success = false, message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
+
     }
 }

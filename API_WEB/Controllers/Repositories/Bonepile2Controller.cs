@@ -434,11 +434,6 @@ namespace API_WEB.Controllers.Repositories
                     .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
                     .ToListAsync();
 
-                //var scrapDict = scrapCategories.ToDictionary(
-                //    c => c.SN?.Trim().ToUpper() ?? "",
-                //    c => c.ApplyTaskStatus,
-                //    StringComparer.OrdinalIgnoreCase
-                //);
                 // Tạo từ điển ánh xạ SN với ApplyTaskStatus và TaskNumber
                 var scrapDict = scrapCategories.ToDictionary(
                     c => c.SN?.Trim().ToUpper() ?? "",
@@ -518,7 +513,6 @@ namespace API_WEB.Controllers.Repositories
                             testCode = b.TEST_CODE,
                             testGroup = b.TEST_GROUP,
                             errorDesc = b.ERROR_DESC,
-                            note = b.DATA19,
                             agingDay = b.AGING_DAY,
                             checkInDate = b.CHECKIN_DATE
                         };
@@ -722,7 +716,6 @@ namespace API_WEB.Controllers.Repositories
                             testCode = b.TEST_CODE,
                             testGroup = b.TEST_GROUP,
                             errorDesc = b.ERROR_DESC,
-                            note = b.DATA19,
                             agingDay = b.AGING_DAY,
                             checkInDate = b.CHECKIN_DATE
                         };
@@ -767,169 +760,85 @@ namespace API_WEB.Controllers.Repositories
             await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
             await connection.OpenAsync();
 
-            string query = @"SELECT 
-    a.SERIAL_NUMBER,
-    a.MODEL_NAME,
-    c.PRODUCT_LINE,
-    a.MO_NUMBER,
-    a.TEST_GROUP,
-    a.TEST_CODE,
-    a.TEST_TIME,
-    r107.WIP_GROUP,
-    r107.ERROR_FLAG,
-    r107.WORK_FLAG,
-    a.DATA1,
-    a.DATA11,
-    a.DATA19,
-    'REPAIR_TASK' AS SOURCE,
-    (
-        SELECT MIN(d.DATE3)
-        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-          AND d.DATA12 = 'CHECK_IN'
-    ) AS CHECKIN_DATE,
-    ROUND(
-        SYSDATE - (
-            SELECT MIN(d.DATE3)
-            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-              AND d.DATA12 = 'CHECK_IN'
-        ), 2
-    ) AS AGING_DAY
-FROM SFISM4.R_REPAIR_TASK_T a
-INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
-LEFT JOIN SFISM4.R107 r107 ON a.SERIAL_NUMBER = r107.SERIAL_NUMBER
-WHERE NOT EXISTS (
-    SELECT 1 
-    FROM SFISM4.Z_KANBAN_TRACKING_T z 
-    WHERE z.serial_number = a.SERIAL_NUMBER
-)
-AND NOT EXISTS (
-    SELECT 1 
-    FROM SFISM4.Z_KANBAN_TRACKING_T z 
-    WHERE z.serial_number = a.SERIAL_NUMBER 
-      AND z.WIP_GROUP LIKE '%B36R%'
-)
-AND a.MO_NUMBER NOT LIKE '8%'
-AND (
-    (c.MODEL_SERIAL = 'ADAPTER' AND a.MODEL_NAME NOT LIKE '900%' AND a.MODEL_NAME NOT LIKE '692%')
-    OR ((a.MODEL_NAME LIKE '900%' OR a.MODEL_NAME LIKE '692%') AND a.MO_NUMBER LIKE '400%')
-)
-AND r107.WIP_GROUP NOT LIKE '%BR2C%'
-AND a.TEST_CODE NOT IN (
-    'BV00', 'PP10', 'BRK00', 'HSK00', 'SCR00', 'C028', 'TA00', 'CAR0', 'C010', 'C012',
-    'LBxx', 'GB00', 'CLExx', 'GL00', 'BHSK00', 'DIR02', 'DIR03', 'DR00', 'GF06',
-    'CLE02', 'CLE03', 'CLE04', 'CLE05', 'CLE06', 'CLE07', 'CLE08', 'LB01', 'LB02', 
-    'LB03', 'LB04', 'LB05', 'LB06', 'LB07', 'CK00'
-)
+            string query = @"
+                    SELECT 
+                        r107.SERIAL_NUMBER,
+                        r107.MODEL_NAME,
+                        model_desc.PRODUCT_LINE,
+                        r107.MO_NUMBER,
+                        r107.ERROR_FLAG,
+                        r107.WORK_FLAG,
+                        r107.WIP_GROUP,
+                        r109_latest.TEST_GROUP,
+                        r109_latest.TEST_TIME,
+                        r109_latest.TEST_CODE,
+                        error_desc.ERROR_DESC,
+                        repair_task.DATA11,
+                        /* mốc CHECK_IN đầu tiên */
+                        chkin.first_checkin_date AS CHECKIN_DATE,
+                        /* Aging theo ngày (số ngày kể từ CHECK_IN đầu tiên tới hiện tại) */
+                        TRUNC(SYSDATE - chkin.first_checkin_date) AS AGING_DAY
+                    FROM sfism4.r107 r107
+                    JOIN sfis1.c_model_desc_t model_desc
+                      ON r107.model_name = model_desc.model_name
+                    LEFT JOIN sfism4.r_repair_task_t repair_task
+                    ON r107.SERIAL_NUMBER = repair_task.SERIAL_NUMBER
+                    /* Lấy CHECK_IN đầu tiên (date3 nhỏ nhất) cho mỗi serial_number */
+                    LEFT JOIN (
+                        SELECT
+                            d.SERIAL_NUMBER,
+                            MIN(d.DATE3) AS first_checkin_date
+                        FROM sfism4.R_REPAIR_TASK_DETAIL_T d
+                        WHERE d.DATA12 = 'CHECK_IN'
+                        GROUP BY d.SERIAL_NUMBER
+                    ) chkin
+                      ON chkin.SERIAL_NUMBER = r107.SERIAL_NUMBER
 
-UNION ALL
+                    /* Lấy bản ghi TEST_CODE mới nhất từ R109 theo từng SERIAL_NUMBER */
+                    LEFT JOIN (
+                        SELECT SERIAL_NUMBER, TEST_CODE, TEST_TIME, TEST_GROUP
+                        FROM (
+                            SELECT 
+                                R109.SERIAL_NUMBER,
+                                R109.TEST_CODE,
+                                R109.TEST_TIME,
+                                R109.TEST_GROUP,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY R109.SERIAL_NUMBER 
+                                    ORDER BY R109.TEST_TIME DESC, R109.TEST_CODE DESC
+                                ) AS rn
+                            FROM SFISM4.R109 R109
+                        ) t
+                        WHERE t.rn = 1
+                    ) r109_latest
+                      ON r109_latest.SERIAL_NUMBER = r107.SERIAL_NUMBER
 
-SELECT 
-    a.SERIAL_NUMBER,
-    a.MODEL_NAME,
-    c.PRODUCT_LINE,
-    a.MO_NUMBER,
-    a.TEST_GROUP,
-    a.TEST_CODE,
-    a.TEST_TIME,
-    b.WIP_GROUP,
-    b.ERROR_FLAG,
-    b.WORK_FLAG,
-    a.DATA1,
-    NULL AS DATA11,
-    NULL AS DATA19,
-    'R109_ERROR_FLAG1' AS SOURCE,
-    (
-        SELECT MIN(d.DATE3)
-        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-          AND d.DATA12 = 'CHECK_IN'
-    ) AS CHECKIN_DATE,
-    ROUND(
-        SYSDATE - (
-            SELECT MIN(d.DATE3)
-            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-              AND d.DATA12 = 'CHECK_IN'
-        ), 2
-    ) AS AGING_DAY
-FROM SFISM4.R109 a
-INNER JOIN SFISM4.R107 b ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
-INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
-WHERE a.REASON_CODE IS NULL
-AND a.MODEL_NAME IN (
-    SELECT MODEL_NAME 
-    FROM SFIS1.C_MODEL_DESC_T 
-    WHERE MODEL_SERIAL = 'ADAPTER'
-)
-AND a.MODEL_NAME NOT LIKE '900%'
-AND a.MODEL_NAME NOT LIKE '692%'
-AND b.ERROR_FLAG = 1
-AND a.MO_NUMBER NOT LIKE '8%'
-AND NOT EXISTS (
-    SELECT 1 
-    FROM SFISM4.Z_KANBAN_TRACKING_T z 
-    WHERE z.serial_number = a.SERIAL_NUMBER 
-      AND z.WIP_GROUP LIKE '%B36R%'
-)
-AND b.WIP_GROUP NOT LIKE '%BR2C%'
-AND a.TEST_CODE NOT IN (
-    'BV00', 'PP10', 'BRK00', 'HSK00', 'SCR00', 'C028', 'TA00', 'CAR0', 'C010', 'C012',
-    'LBxx', 'GB00', 'CLExx', 'GL00', 'BHSK00', 'DIR02', 'DIR03', 'DR00', 'GF06',
-    'CLE02', 'CLE03', 'CLE04', 'CLE05', 'CLE06', 'CLE07', 'CLE08', 'LB01', 'LB02', 
-    'LB03', 'LB04', 'LB05', 'LB06', 'LB07', 'CK00'
-)
-AND (SYSDATE - a.TEST_TIME) * 24 >= 8
+                    INNER JOIN sfis1.C_ERROR_CODE_T error_desc
+                      ON r109_latest.TEST_CODE = error_desc.ERROR_CODE
 
-UNION ALL
-
-SELECT 
-    a.SERIAL_NUMBER,
-    a.MODEL_NAME,
-    c.PRODUCT_LINE,
-    a.MO_NUMBER,
-    a.TEST_GROUP,
-    a.TEST_CODE,
-    a.TEST_TIME,
-    b.WIP_GROUP,
-    b.ERROR_FLAG,
-    b.WORK_FLAG,
-    a.DATA1,
-    NULL AS DATA11,
-    NULL AS DATA19,
-    'R109_REASON_B001' AS SOURCE,
-    (
-        SELECT MIN(d.DATE3)
-        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-          AND d.DATA12 = 'CHECK_IN'
-    ) AS CHECKIN_DATE,
-    ROUND(
-        SYSDATE - (
-            SELECT MIN(d.DATE3)
-            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-              AND d.DATA12 = 'CHECK_IN'
-        ), 2
-    ) AS AGING_DAY
-FROM SFISM4.R109 a
-INNER JOIN SFISM4.R107 b ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
-INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
-WHERE a.SERIAL_NUMBER NOT IN (SELECT SERIAL_NUMBER FROM SFISM4.Z_KANBAN_TRACKING_T)
-AND NOT EXISTS (
-    SELECT 1 
-    FROM SFISM4.Z_KANBAN_TRACKING_T z 
-    WHERE z.serial_number = a.SERIAL_NUMBER 
-      AND z.WIP_GROUP LIKE '%B36R%'
-)
-AND a.REASON_CODE = 'B001'
-AND b.WIP_GROUP NOT LIKE '%BR2C%'
-AND c.MODEL_SERIAL = 'ADAPTER'
-AND a.MO_NUMBER NOT LIKE '8%'
-AND a.REPAIR_TIME BETWEEN TO_DATE('2025-05-15 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
-AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:SS')
-";
+                    WHERE 
+                          model_desc.MODEL_SERIAL = 'ADAPTER'
+                      AND r107.SERIAL_NUMBER NOT IN (
+                          SELECT SERIAL_NUMBER FROM SFISM4.Z_KANBAN_TRACKING_T
+                      )
+                      AND r107.MODEL_NAME NOT LIKE '900%'
+                      AND r107.MODEL_NAME NOT LIKE '692%'
+                      AND r107.MODEL_NAME NOT LIKE 'TB%'
+                      AND r107.WIP_GROUP NOT LIKE '%BR2C%'
+                      AND (
+                            /* Nhóm cũ: ERROR_FLAG 7 hoặc 8 */
+                            r107.ERROR_FLAG IN ('7','8')
+                            /* Nhóm bổ sung: ERROR_FLAG = 1 và test mới nhất ngoài 8 giờ gần nhất */
+                            OR ( r107.ERROR_FLAG = '1'
+                                 AND r109_latest.TEST_TIME <= SYSDATE - (8/24)
+                               )
+                          )
+                      AND r109_latest.TEST_CODE NOT IN (
+                        'BV00', 'PP10', 'BRK00', 'HSK00', 'SCR00', 'C028', 'TA00', 'CAR0', 'C010', 'C012',
+                        'LBxx', 'GB00', 'CLExx', 'GL00', 'BHSK00', 'DIR02', 'DIR03', 'DR00', 'GF06',
+                        'CLE02', 'CLE03', 'CLE04', 'CLE05', 'CLE06', 'CLE07', 'CLE08', 'LB01', 'LB02', 
+                        'LB03', 'LB04', 'LB05', 'LB06', 'LB07', 'CK00'
+                    )";
 
             using (var command = new OracleCommand(query, connection))
             {
@@ -949,9 +858,8 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             TEST_GROUP = reader["TEST_GROUP"] != DBNull.Value ? reader["TEST_GROUP"].ToString() : null,
                             TEST_TIME = reader["TEST_TIME"].ToString(),
                             TEST_CODE = reader["TEST_CODE"].ToString(),
-                            ERROR_DESC = reader["DATA1"].ToString(),
+                            ERROR_DESC = reader["ERROR_DESC"].ToString(),
                             DATA11 = reader["DATA11"] != DBNull.Value ? reader["DATA11"].ToString() : null,
-                            DATA19 = reader["DATA19"] != DBNull.Value ? reader["DATA19"].ToString() : null,
                             CHECKIN_DATE = reader["CHECKIN_DATE"] != DBNull.Value ? Convert.ToDateTime(reader["CHECKIN_DATE"]) : (DateTime?)null,
                             AGING_DAY = reader["AGING_DAY"] != DBNull.Value ? reader["AGING_DAY"].ToString() : null,
                         });
@@ -961,7 +869,6 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
 
             return result;
         }
-        //===============END BONEPILE BEFORE==================
 
 
         /// <summary>
