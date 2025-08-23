@@ -39,16 +39,13 @@
     };
 
     async function fetchNotesForSerials(serials) {
-        const map = {};
-        for (const sn of serials) {
-            try {
-                const res = await axios.get(`${noteUrl}/${sn}`);
-                map[sn] = res.data?.data || '';
-            } catch (err) {
-                console.error('Error fetching note for', sn, err);
-            }
+        try {
+            const res = await axios.post(noteUrl, serials);
+            return res.data?.data || {};
+        } catch (err) {
+            console.error('Error fetching notes', err);
+            return {};
         }
-        return map;
     }
 
     let dataTable;

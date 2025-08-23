@@ -1,6 +1,7 @@
 using API_WEB.ModelsOracle;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace API_WEB.Controllers.SmartFA
 {
@@ -15,21 +16,20 @@ namespace API_WEB.Controllers.SmartFA
             _oracleContext = oracleContext;
         }
 
-        [HttpGet("data19/{serialNumber}")]
-        public async Task<IActionResult> GetData19BySerial(string serialNumber)
+        [HttpPost("data19")]
+        public async Task<IActionResult> GetData19BySerials([FromBody] List<string> serialNumbers)
         {
-            if (string.IsNullOrWhiteSpace(serialNumber))
+            if (serialNumbers == null || !serialNumbers.Any())
             {
-                return BadRequest(new { success = false, message = "Serial number is required." });
+                return BadRequest(new { success = false, message = "Serial numbers are required." });
             }
 
-            var dataList = await _oracleContext.OracleDataRepairTaskDetail
-                .Where(r => r.SERIAL_NUMBER == serialNumber &&
+            var data = await _oracleContext.OracleDataRepairTaskDetail
+                .Where(r => serialNumbers.Contains(r.SERIAL_NUMBER) &&
                             (r.DATA17 == "Confirm" || r.DATA17 == "Save" || r.DATA17 == "save" || r.DATA17 == "confirm"))
-                .Select(r => r.DATA19)
-                .ToListAsync();
-
-            var data = string.Join(",", dataList);
+                .GroupBy(r => r.SERIAL_NUMBER)
+                .Select(g => new { SerialNumber = g.Key, Note = string.Join(",", g.Select(r => r.DATA19)) })
+                .ToDictionaryAsync(x => x.SerialNumber, x => x.Note);
 
             return Ok(new { success = true, data });
         }
