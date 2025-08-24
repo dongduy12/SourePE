@@ -4,6 +4,7 @@
     const apiDetailUrl = `${apiBase}/adapter-repair-records`;
     const apiAgingUrl = `${apiBase}/adapter-repair-aging-count`;
     const locationUrl = 'http://10.220.130.119:9090/api/Search/GetLocations';
+    const noteUrl = 'http://10.220.130.119:9090/api/RepairTaskDetail/data19';
 
     let agingData = [];
 
@@ -36,6 +37,16 @@
         ">90": "#dc3545",
         "Unknown": "#6c757d"
     };
+
+    async function fetchNotesForSerials(serials) {
+        try {
+            const res = await axios.post(noteUrl, serials);
+            return res.data?.data || {};
+        } catch (err) {
+            console.error('Error fetching notes', err);
+            return {};
+        }
+    }
 
     let dataTable;
     let modalTable;
@@ -228,7 +239,16 @@
             } catch (err) {
                 console.error('Error fetching locations', err);
             }
-            tableData.forEach(r => { r.location = locationMap[r.sn] || ''; });
+            let noteMap = {};
+            try {
+                noteMap = await fetchNotesForSerials(serials);
+            } catch (err) {
+                console.error('Error fetching notes', err);
+            }
+            tableData.forEach(r => {
+                r.location = locationMap[r.sn] || '';
+                r.note = noteMap[r.sn] || '';
+            });
 
             if (dataTable) {
                 dataTable.clear().rows.add(tableData).draw();
@@ -343,7 +363,16 @@
             } catch (err) {
                 console.error('Error fetching locations for modal', err);
             }
-            records.forEach(r => { r.location = locationMap[r.sn] || ''; });
+            let noteMap = {};
+            try {
+                noteMap = await fetchNotesForSerials(serials);
+            } catch (err) {
+                console.error('Error fetching notes for modal', err);
+            }
+            records.forEach(r => {
+                r.location = locationMap[r.sn] || '';
+                r.note = noteMap[r.sn] || '';
+            });
             if (modalTable) {
                 modalTable.clear().rows.add(records).draw();
             } else {

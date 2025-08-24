@@ -5,6 +5,17 @@ document.addEventListener('DOMContentLoaded', async function () {
     const afterCountUrl = `${apiBase}/bonepile-after-kanban-count`;
     const afterDetailUrl = `${apiBase}/bonepile-after-kanban`;
     const locationUrl = 'http://10.220.130.119:9090/api/Search/GetLocations';
+    const noteUrl = 'http://10.220.130.119:9090/api/RepairTaskDetail/data19';
+
+    async function fetchNotesForSerials(serials) {
+        try {
+            const res = await axios.post(noteUrl, serials);
+            return res.data?.data || {};
+        } catch (err) {
+            console.error('Error fetching notes', err);
+            return {};
+        }
+    }
 
     const beforeStatuses = [
         'Scrap Lacks Task',
@@ -147,16 +158,27 @@ document.addEventListener('DOMContentLoaded', async function () {
             const afterData = afterRes.data?.data || [];
 
             // Chỉ lấy vị trí cho SERIAL_NUMBER(FG)
-            const serials = Array.from(new Set(
+            const locationSerials = Array.from(new Set(
                 afterData.map(a => a.sn).filter(Boolean)
             ));
 
             let locationMap = {};
             try {
-                const locRes = await axios.post(locationUrl, serials);
+                const locRes = await axios.post(locationUrl, locationSerials);
                 locationMap = locRes.data?.data || {};
             } catch (err) {
                 console.error('Error fetching location', err);
+            }
+
+            const allSerials = Array.from(new Set([
+                ...beforeData.map(b => b.sn),
+                ...afterData.map(a => a.sn)
+            ].filter(Boolean)));
+            let noteMap = {};
+            try {
+                noteMap = await fetchNotesForSerials(allSerials);
+            } catch (err) {
+                console.error('Error fetching notes', err);
             }
             const mappedBefore = beforeData.map(b => ({
                 type: 'Before',
@@ -174,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 status: normalizeStatus(b.status),
                 aging: b.agingDay,
                 location: locationMap[b.sn] || '',
-                note: b.note || ''
+                note: noteMap[b.sn] || ''
             }));
             const mappedAfter = afterData.map(a => ({
                 type: 'After',
@@ -192,7 +214,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 status: normalizeStatus(a.status),
                 aging: a.fgAging,
                 location: locationMap[a.sn] || '',
-                note: ''
+                note: noteMap[a.sn] || ''
             }));
             const combined = mappedBefore.concat(mappedAfter);
             if (dataTable) {

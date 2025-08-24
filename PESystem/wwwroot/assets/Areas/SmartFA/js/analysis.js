@@ -58,7 +58,7 @@ const ApiService = (function () {
         getStatusCounts: (type) => fetchAPI('/SearchFA/get-status-counts', 'POST', type),
         getLocationCounts: () => fetchAPI('/DataChart/getCountLocation', 'GET'),
         getAgingCounts: () => fetchAPI('/DataChart/get-aging-counts', 'GET'),
-        getRepairInfo: (serialNumber) => fetchAPI(`/RepairTaskDetail/data19/${serialNumber}`, 'GET')
+        getRepairInfo: (serialNumbers) => fetchAPI('/RepairTaskDetail/data19', 'POST', serialNumbers)
     };
 })();
 
@@ -1771,20 +1771,22 @@ $(document).ready(function () {
                 return;
             }
             const headers = ['SERIAL_NUMBER', 'PRODUCT_LINE', 'MODEL_NAME', 'WIP', 'TEST_GROUP', 'TEST_CODE', 'ERROR_DESC', 'PRE_STATUS', 'STATUS', 'DATE', 'ID_NV', 'CHECK_POINT', 'HANDOVER', 'VỊ_TRÍ', 'SỬA_CHỮA'];
-            const rowPromises = allData.map(async row => {
+
+            const serials = allData.map(row => $('<div>').html(row[0]).text().trim());
+            let repairMap = {};
+            try {
+                const result = await ApiService.getRepairInfo(serials);
+                repairMap = result.data || {};
+            } catch (error) {
+                console.error('Lỗi lấy thông tin sửa chữa:', error);
+            }
+
+            const rows = allData.map(row => {
                 const serial = $('<div>').html(row[0]).text().trim();
-                let repairInfo = '';
-                try {
-                    const result = await ApiService.getRepairInfo(serial);
-                    repairInfo = result.data || '';
-                } catch (error) {
-                    console.error(`Lỗi lấy thông tin sửa chữa của ${serial}:`, error);
-                }
                 const baseRow = row.slice(0, 14).map(cell => $('<div>').html(cell).text());
-                baseRow.push(repairInfo);
+                baseRow.push(repairMap[serial] || '');
                 return baseRow;
             });
-            const rows = await Promise.all(rowPromises);
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'SNTable');
