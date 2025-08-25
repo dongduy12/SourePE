@@ -1040,7 +1040,7 @@ namespace API_WEB.Controllers.Repositories
         }
 
         [HttpPost("bonepile-after-kanban-testinfo")]
-        public async Task<IActionResult> BonepileAfterKanbanTestInfo([FromBody] SerialNumberRequest request)
+        public async Task<IActionResult> BonepileAfterKanbanTestInfo([FromBody] BonepileSerialNumberRequest request)
         {
             try
             {

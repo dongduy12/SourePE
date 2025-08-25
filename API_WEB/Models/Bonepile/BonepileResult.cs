@@ -99,7 +99,7 @@ namespace API_WEB.Models.Bonepile
         public string Status { get; set; }
     }
 
-    public class SerialNumberRequest
+    public class BonepileSerialNumberRequest
     {
         public List<string> SerialNumbers { get; set; }
     }
