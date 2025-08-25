@@ -517,7 +517,7 @@ namespace API_WEB.Controllers.Repositories
                             checkInDate = b.CHECKIN_DATE
                         };
                     })
-                    .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase) &&
+                    .Where(r => validStatuses.Contains(r.Status) &&
                                 (!filterByStatus || statuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase)))
                     .ToList();
 
@@ -721,7 +721,7 @@ namespace API_WEB.Controllers.Repositories
                             checkInDate = b.CHECKIN_DATE
                         };
                     })
-                    .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase))
+                    .Where(r => validStatuses.Contains(r.Status))
                     .ToList();
 
                 var agingGroups = records
@@ -1016,7 +1016,7 @@ namespace API_WEB.Controllers.Repositories
                             Status = status
                         };
                     })
-                    .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase) &&
+                    .Where(r => validStatuses.Contains(r.Status) &&
                                 (!filterByStatus || statuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase)))
                     .ToList();
                 // Log result count
@@ -1481,7 +1481,7 @@ namespace API_WEB.Controllers.Repositories
                             Status = status
                         };
                     })
-                    .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase) &&
+                    .Where(r => validStatuses.Contains(r.Status) &&
                                 (!filterByStatus || statuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase)))
                     .ToList();
 
