@@ -34,7 +34,6 @@
         "<30": "#28a745",
         "30-90": "#ffc107",
         ">90": "#dc3545",
-        "Unknown": "#6c757d"
     };
 
     let dataTable;
@@ -252,7 +251,7 @@
                         { data: "agingDay" },
                         { data: "location" },
                         { data: "status" },
-                        { data: "note" }
+                        { data: "repair" }
                     ],
                     dom: '<"top d-flex align-items-center"flB>rt<"bottom"ip>',
 
@@ -366,7 +365,7 @@
                         { data: "agingDay" },
                         { data: "location" },
                         { data: "status" },
-                        { data: "note" }
+                        { data: "repair" }
                     ],
                     buttons: [
                         {

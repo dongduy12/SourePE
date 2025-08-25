@@ -161,7 +161,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             const mappedBefore = beforeData.map(b => ({
                 type: 'Before',
                 sn: b.sn,
-                fg: '',
                 productLine: b.productLine,
                 modelName: b.modelName,
                 moNumber: b.moNumber,
@@ -174,12 +173,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                 status: normalizeStatus(b.status),
                 aging: b.agingDay,
                 location: locationMap[b.sn] || '',
-                note: b.note || ''
+                repair: b.repair || ''
             }));
             const mappedAfter = afterData.map(a => ({
                 type: 'After',
                 sn: a.sn,
-                fg: a.fg,
                 productLine: a.productLine,
                 modelName: a.modelName,
                 moNumber: a.moNumber,
@@ -192,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 status: normalizeStatus(a.status),
                 aging: a.fgAging,
                 location: locationMap[a.sn] || '',
-                note: ''
+                repair: ''
             }));
             const combined = mappedBefore.concat(mappedAfter);
             if (dataTable) {
@@ -204,7 +202,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                     columns: [
                         { data: 'type' },
                         { data: 'sn' },
-                        { data: 'fg' },
                         { data: 'productLine' },
                         { data: 'modelName' },
                         { data: 'moNumber' },
@@ -217,7 +214,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         { data: 'status' },
                         { data: 'aging' },
                         { data: 'location' },
-                        { data: 'note' }
+                        { data: 'repair' }
                     ],
                     dom: '<"top d-flex align-items-center"flB>rt<"bottom"ip>',
                     buttons: [

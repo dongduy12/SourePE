@@ -513,6 +513,7 @@ namespace API_WEB.Controllers.Repositories
                             testCode = b.TEST_CODE,
                             testGroup = b.TEST_GROUP,
                             errorDesc = b.ERROR_DESC,
+                            repair = b.REPAIR,
                             agingDay = b.AGING_DAY,
                             checkInDate = b.CHECKIN_DATE
                         };
@@ -716,6 +717,7 @@ namespace API_WEB.Controllers.Repositories
                             testCode = b.TEST_CODE,
                             testGroup = b.TEST_GROUP,
                             errorDesc = b.ERROR_DESC,
+                            repair = b.REPAIR,
                             agingDay = b.AGING_DAY,
                             checkInDate = b.CHECKIN_DATE
                         };
@@ -732,7 +734,7 @@ namespace API_WEB.Controllers.Repositories
                             if (aging <= 90) return "30-90";
                             return ">90";
                         }
-                        return "Unknown";
+                        return ">90";
                     })
                     .Select(g => new
                     {
@@ -774,6 +776,10 @@ namespace API_WEB.Controllers.Repositories
                         r109_latest.TEST_CODE,
                         error_desc.ERROR_DESC,
                         repair_task.DATA11,
+
+                        -- Gộp DATA19 theo từng SERIAL_NUMBER (chỉ lấy các dòng DATA17 = Confirm/Save (không phân biệt hoa thường))
+                        rt19.DATA19_COMBINED,
+
                         /* mốc CHECK_IN đầu tiên */
                         chkin.first_checkin_date AS CHECKIN_DATE,
                         /* Aging theo ngày (số ngày kể từ CHECK_IN đầu tiên tới hiện tại) */
@@ -781,9 +787,11 @@ namespace API_WEB.Controllers.Repositories
                     FROM sfism4.r107 r107
                     JOIN sfis1.c_model_desc_t model_desc
                       ON r107.model_name = model_desc.model_name
+
                     LEFT JOIN sfism4.r_repair_task_t repair_task
-                    ON r107.SERIAL_NUMBER = repair_task.SERIAL_NUMBER
-                    /* Lấy CHECK_IN đầu tiên (date3 nhỏ nhất) cho mỗi serial_number */
+                      ON r107.SERIAL_NUMBER = repair_task.SERIAL_NUMBER
+
+                    /* Lấy CHECK_IN đầu tiên (DATE3 nhỏ nhất) cho mỗi SERIAL_NUMBER */
                     LEFT JOIN (
                         SELECT
                             d.SERIAL_NUMBER,
@@ -794,6 +802,18 @@ namespace API_WEB.Controllers.Repositories
                     ) chkin
                       ON chkin.SERIAL_NUMBER = r107.SERIAL_NUMBER
 
+                    /* Gộp DATA19 cho mỗi SERIAL_NUMBER, chỉ lấy khi DATA17 là Confirm/Save (không phân biệt hoa thường) */
+                    LEFT JOIN (
+                        SELECT
+                            d.SERIAL_NUMBER,
+                            LISTAGG(TRIM(d.DATA19), ' | ') WITHIN GROUP (ORDER BY d.DATE3) AS DATA19_COMBINED
+                        FROM sfism4.R_REPAIR_TASK_DETAIL_T d
+                        WHERE UPPER(d.DATA17) IN ('CONFIRM', 'SAVE')
+                          AND d.DATA19 IS NOT NULL
+                        GROUP BY d.SERIAL_NUMBER
+                    ) rt19
+                      ON rt19.SERIAL_NUMBER = r107.SERIAL_NUMBER
+
                     /* Lấy bản ghi TEST_CODE mới nhất từ R109 theo từng SERIAL_NUMBER */
                     LEFT JOIN (
                         SELECT SERIAL_NUMBER, TEST_CODE, TEST_TIME, TEST_GROUP
@@ -803,8 +823,8 @@ namespace API_WEB.Controllers.Repositories
                                 R109.TEST_CODE,
                                 R109.TEST_TIME,
                                 R109.TEST_GROUP,
-                                ROW_NUMBER() OVER (
-                                    PARTITION BY R109.SERIAL_NUMBER 
+                                ROW_NUMBER() OVER(
+                                    PARTITION BY R109.SERIAL_NUMBER
                                     ORDER BY R109.TEST_TIME DESC, R109.TEST_CODE DESC
                                 ) AS rn
                             FROM SFISM4.R109 R109
@@ -825,6 +845,7 @@ namespace API_WEB.Controllers.Repositories
                       AND r107.MODEL_NAME NOT LIKE '692%'
                       AND r107.MODEL_NAME NOT LIKE 'TB%'
                       AND r107.WIP_GROUP NOT LIKE '%BR2C%'
+                      AND r107.WIP_GROUP NOT LIKE '%BCFA%'
                       AND (
                             /* Nhóm cũ: ERROR_FLAG 7 hoặc 8 */
                             r107.ERROR_FLAG IN ('7','8')
@@ -834,11 +855,12 @@ namespace API_WEB.Controllers.Repositories
                                )
                           )
                       AND r109_latest.TEST_CODE NOT IN (
-                        'BV00', 'PP10', 'BRK00', 'HSK00', 'SCR00', 'C028', 'TA00', 'CAR0', 'C010', 'C012',
-                        'LBxx', 'GB00', 'CLExx', 'GL00', 'BHSK00', 'DIR02', 'DIR03', 'DR00', 'GF06',
-                        'CLE02', 'CLE03', 'CLE04', 'CLE05', 'CLE06', 'CLE07', 'CLE08', 'LB01', 'LB02', 
-                        'LB03', 'LB04', 'LB05', 'LB06', 'LB07', 'CK00'
-                    )";
+                        'BV00','PP10','BRK00','HSK00','SCR00','C028','TA00','CAR0','C010','C012',
+                        'LBxx','GB00','CLExx','GL00','BHSK00','DIR02','DIR03','DR00','GF06',
+                        'CLE02','CLE03','CLE04','CLE05','CLE06','CLE07','CLE08','LB01','LB02',
+                        'LB03','LB04','LB05','LB06','LB07','CK00'
+                      )
+                    ";
 
             using (var command = new OracleCommand(query, connection))
             {
@@ -860,6 +882,7 @@ namespace API_WEB.Controllers.Repositories
                             TEST_CODE = reader["TEST_CODE"].ToString(),
                             ERROR_DESC = reader["ERROR_DESC"].ToString(),
                             DATA11 = reader["DATA11"] != DBNull.Value ? reader["DATA11"].ToString() : null,
+                            REPAIR = reader["DATA19_COMBINED"] != DBNull.Value ? reader["DATA19_COMBINED"].ToString() : null,
                             CHECKIN_DATE = reader["CHECKIN_DATE"] != DBNull.Value ? Convert.ToDateTime(reader["CHECKIN_DATE"]) : (DateTime?)null,
                             AGING_DAY = reader["AGING_DAY"] != DBNull.Value ? reader["AGING_DAY"].ToString() : null,
                         });
@@ -1288,7 +1311,8 @@ namespace API_WEB.Controllers.Repositories
                 WHERE
                     A.WIP_GROUP LIKE '%B36R%'
                     AND B.MODEL_SERIAL = 'ADAPTER'
-                    AND R107.WIP_GROUP NOT LIKE '%BR2C%'";
+                    AND R107.WIP_GROUP NOT LIKE '%BR2C%'
+                    AND R107.WIP_GROUP NOT LIKE '%BCFA%'";
 
             using var command = new OracleCommand(query, connection);
             using var reader = await command.ExecuteReaderAsync();

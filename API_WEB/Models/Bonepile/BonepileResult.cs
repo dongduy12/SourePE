@@ -59,6 +59,7 @@
         public string WORK_FLAG { get; set; }
         public string ERROR_FLAG { get; set; }
         public string DATA11 { get; set; }
+        public string REPAIR { get; set; }
         public string? STATUS { get; set; }
         public string? AGING_DAY { get; set; }
         public DateTime? CHECKIN_DATE { get; set; }
