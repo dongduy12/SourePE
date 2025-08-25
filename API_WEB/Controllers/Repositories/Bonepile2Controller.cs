@@ -12,6 +12,7 @@ using OfficeOpenXml;
 using Oracle.ManagedDataAccess.Client;
 using System.Linq;
 using System.Runtime.Intrinsics.X86;
+using System.Collections.Generic;
 
 namespace API_WEB.Controllers.Repositories
 {
@@ -899,9 +900,9 @@ namespace API_WEB.Controllers.Repositories
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        /// 
-        [HttpPost("bonepile-after-kanban")]
-        public async Task<IActionResult> BonepileAfterKanban([FromBody] StatusRequestBonepile request)
+        ///
+        [HttpPost("bonepile-after-kanban-basic")]
+        public async Task<IActionResult> BonepileAfterKanbanBasic([FromBody] StatusRequestBonepile request)
         {
             try
             {
@@ -911,7 +912,7 @@ namespace API_WEB.Controllers.Repositories
                 }
                 bool filterByStatus = request.Statuses?.Any() == true;
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
-                var allData = await ExecuteBonepileAfterKanbanQuery();
+                var allData = await ExecuteBonepileAfterKanbanBasicQuery();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -963,8 +964,6 @@ namespace API_WEB.Controllers.Repositories
                     {
                         var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
                         string status;
-
-                        var groupKanban = b.WIP_GROUP_KANBAN?.Trim();
                         if (scrapDict.TryGetValue(sn, out var scrapInfo))
                         {
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
@@ -994,20 +993,12 @@ namespace API_WEB.Controllers.Repositories
                         {
                             if (exportDict.TryGetValue(sn, out var exportInfo))
                             {
-                                var testTime = b.TEST_TIME;
-                                if (exportInfo.ExportDate.HasValue && testTime.HasValue && exportInfo.ExportDate < testTime)
+                                status = exportInfo.CheckingB36R switch
                                 {
-                                    status = "RepairInRE";
-                                }
-                                else
-                                {
-                                    status = exportInfo.CheckingB36R switch
-                                    {
-                                        1 => "WaitingLink",
-                                        2 => "Linked",
-                                        _ => "RepairInRE",
-                                    };
-                                }
+                                    1 => "WaitingLink",
+                                    2 => "Linked",
+                                    _ => "RepairInRE",
+                                };
                             }
                             else
                             {
@@ -1024,11 +1015,6 @@ namespace API_WEB.Controllers.Repositories
                             WipGroupKANBAN = b.WIP_GROUP_KANBAN,
                             ErrorFlag = b.ERROR_FLAG,
                             WorkFlag = b.WORK_FLAG,
-                            testTime = b.TEST_TIME,
-                            testCode = b.TEST_CODE,
-                            errorDesc = b.ERROR_DESC,
-                            testGroup = b.TEST_GROUP,
-                            aging = b.AGING,
                             Status = status
                         };
                     })
@@ -1054,12 +1040,37 @@ namespace API_WEB.Controllers.Repositories
                 return StatusCode(500, new { message = "Xay ra loi", error = ex.Message });
             }
         }
+
+        [HttpPost("bonepile-after-kanban-testinfo")]
+        public async Task<IActionResult> BonepileAfterKanbanTestInfo([FromBody] SerialNumberRequest request)
+        {
+            try
+            {
+                if (request?.SerialNumbers == null || request.SerialNumbers.Count == 0)
+                {
+                    return BadRequest(new { message = "Danh sách SN không hợp lệ!" });
+                }
+
+                var data = await ExecuteBonepileAfterKanbanTestInfoQuery(request.SerialNumbers);
+
+                return Ok(new
+                {
+                    count = data.Count,
+                    data
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xay ra loi", error = ex.Message });
+            }
+        }
+
         [HttpGet("bonepile-after-kanban-count")]
         public async Task<IActionResult> BonepileAfterKanbanCount()
         {
             try
             {
-                var repairTaskData = await ExecuteBonepileAfterKanbanQuery();
+                var repairTaskData = await ExecuteBonepileAfterKanbanBasicQuery();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -1099,8 +1110,6 @@ namespace API_WEB.Controllers.Repositories
                     var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
                     string status;
 
-                    var groupKanban = b.WIP_GROUP_KANBAN?.Trim();
-
                     if (scrapDict.TryGetValue(sn, out var scrapInfo))
                     {
                         var applyTaskStatus = scrapInfo.ApplyTaskStatus;
@@ -1130,20 +1139,12 @@ namespace API_WEB.Controllers.Repositories
                     {
                         if (exportDict.TryGetValue(sn, out var exportInfo))
                         {
-                            var testTime = b.TEST_TIME;
-                            if (exportInfo.ExportDate.HasValue && testTime.HasValue && exportInfo.ExportDate < testTime)
+                            status = exportInfo.CheckingB36R switch
                             {
-                                status = "RepairInRE";
-                            }
-                            else
-                            {
-                                status = exportInfo.CheckingB36R switch
-                                {
-                                    1 => "WaitingLink",
-                                    2 => "Linked",
-                                    _ => "RepairInRE",
-                                };
-                            }
+                                1 => "WaitingLink",
+                                2 => "Linked",
+                                _ => "RepairInRE",
+                            };
                         }
                         else
                         {
@@ -1178,29 +1179,41 @@ namespace API_WEB.Controllers.Repositories
         {
             try
             {
-                var allData = await ExecuteBonepileAfterKanbanQuery();
+                var basicData = await ExecuteBonepileAfterKanbanBasicQuery();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
                 {
-                    allData = allData.Where(d => !excludedSNs.Contains(d.SERIAL_NUMBER?.Trim().ToUpper())).ToList();
+                    basicData = basicData.Where(d => !excludedSNs.Contains(d.SERIAL_NUMBER?.Trim().ToUpper())).ToList();
                 }
 
-                var records = allData
-                    .Select(b => new
+                var snList = basicData
+                    .Select(d => d.SERIAL_NUMBER?.Trim().ToUpper())
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToList();
+
+                var testInfos = await ExecuteBonepileAfterKanbanTestInfoQuery(snList);
+                var testInfoDict = testInfos.ToDictionary(t => t.SERIAL_NUMBER?.Trim().ToUpper() ?? "", StringComparer.OrdinalIgnoreCase);
+
+                var records = basicData
+                    .Select(b =>
                     {
-                        SN = b.SERIAL_NUMBER,
-                        ModelName = b.MODEL_NAME,
-                        MoNumber = b.MO_NUMBER,
-                        ProductLine = b.PRODUCT_LINE,
-                        WipGroupSFC = b.WIP_GROUP_SFC,
-                        WipGroupKANBAN = b.WIP_GROUP_KANBAN,
-                        testTime = b.TEST_TIME,
-                        testCode = b.TEST_CODE,
-                        errorDesc = b.ERROR_DESC,
-                        testGroup = b.TEST_GROUP,
-                        errorFlag = b.ERROR_FLAG,
-                        aging = b.AGING
+                        testInfoDict.TryGetValue(b.SERIAL_NUMBER?.Trim().ToUpper() ?? "", out var t);
+                        return new
+                        {
+                            SN = b.SERIAL_NUMBER,
+                            ModelName = b.MODEL_NAME,
+                            MoNumber = b.MO_NUMBER,
+                            ProductLine = b.PRODUCT_LINE,
+                            WipGroupSFC = b.WIP_GROUP_SFC,
+                            WipGroupKANBAN = b.WIP_GROUP_KANBAN,
+                            testTime = t?.TEST_TIME,
+                            testCode = t?.TEST_CODE,
+                            errorDesc = t?.ERROR_DESC,
+                            testGroup = t?.TEST_GROUP,
+                            errorFlag = b.ERROR_FLAG,
+                            aging = t?.AGING
+                        };
                     })
                     .ToList();
 
@@ -1236,7 +1249,7 @@ namespace API_WEB.Controllers.Repositories
             }
         }
 
-        private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanQuery()
+        private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanBasicQuery()
         {
             var result = new List<BonepileAfterKanbanResult>();
 
@@ -1252,62 +1265,12 @@ namespace API_WEB.Controllers.Repositories
                     A.WIP_GROUP AS WIP_GROUP_KANBAN,
                     R107.WIP_GROUP AS WIP_GROUP_SFC,
                     R107.ERROR_FLAG,
-                    R107.WORK_FLAG,
-
-                    /* ƯU TIÊN LẤY TỪ R_REPAIR_TASK_T, NẾU NULL THÌ LẤY TỪ R109 (QUA KEYPARTS) */
-                    COALESCE(C.TEST_GROUP, R109X.LATEST_TEST_GROUP) AS TEST_GROUP,
-                    COALESCE(C.TEST_TIME , R109X.LATEST_TEST_TIME ) AS TEST_TIME,
-                    COALESCE(C.TEST_CODE , R109X.LATEST_TEST_CODE ) AS TEST_CODE,
-
-                    /* LẤY ERROR_DESC TƯƠNG ỨNG VỚI TEST_CODE ƯU TIÊN */
-                    COALESCE(E1.ERROR_DESC, E2.ERROR_DESC) AS ERROR_DESC,
-
-                    /* AGING TÍNH THEO NGUỒN TEST_TIME SAU KHI FALLBACK */
-                    TRUNC(SYSDATE) - TRUNC(COALESCE(C.TEST_TIME, R109X.LATEST_TEST_TIME)) AS AGING
-
+                    R107.WORK_FLAG
                 FROM SFISM4.Z_KANBAN_TRACKING_T A
                 JOIN SFIS1.C_MODEL_DESC_T B
                   ON A.MODEL_NAME = B.MODEL_NAME
                 JOIN SFISM4.R107 R107
                   ON R107.SERIAL_NUMBER = A.SERIAL_NUMBER
-
-                /* TASK TRỰC TIẾP THEO SN CỦA Z_KANBAN_TRACKING */
-                LEFT JOIN SFISM4.R_REPAIR_TASK_T C
-                  ON C.SERIAL_NUMBER = A.SERIAL_NUMBER
-
-                /* LẤY SERIAL_NUMBER “CHA” MỚI NHẤT THEO WORK_TIME TRONG P_WIP_KEYPARTS_T
-                   (KEY_PART_SN = SN TRONG Z_KANBAN_TRACKING) */
-                LEFT JOIN (
-                    SELECT
-                        K.KEY_PART_SN,
-                        MAX(K.SERIAL_NUMBER) KEEP (DENSE_RANK LAST ORDER BY K.WORK_TIME) AS PARENT_SN,
-                        MAX(K.WORK_TIME) AS LATEST_WORK_TIME
-                    FROM SFISM4.P_WIP_KEYPARTS_T K
-                    WHERE K.WORK_TIME IS NOT NULL
-                    GROUP BY K.KEY_PART_SN
-                ) KP
-                  ON KP.KEY_PART_SN = A.SERIAL_NUMBER
-
-                /* TỪ PARENT_SN Ở TRÊN, LẤY TEST_* MỚI NHẤT TRONG R109 (THEO TEST_TIME) */
-                LEFT JOIN (
-                    SELECT
-                        R.SERIAL_NUMBER,
-                        MAX(R.TEST_TIME) AS LATEST_TEST_TIME,
-                        MAX(R.TEST_CODE) KEEP (DENSE_RANK LAST ORDER BY R.TEST_TIME) AS LATEST_TEST_CODE,
-                        MAX(R.TEST_GROUP) KEEP (DENSE_RANK LAST ORDER BY R.TEST_TIME) AS LATEST_TEST_GROUP
-                    FROM SFISM4.R109 R
-                    WHERE R.TEST_TIME IS NOT NULL
-                    GROUP BY R.SERIAL_NUMBER
-                ) R109X
-                  ON R109X.SERIAL_NUMBER = KP.PARENT_SN
-
-                /* JOIN BẢNG ERROR_CODE TỪ 2 NGUỒN TEST_CODE */
-                LEFT JOIN SFIS1.C_ERROR_CODE_T E1
-                  ON C.TEST_CODE = E1.ERROR_CODE
-
-                LEFT JOIN SFIS1.C_ERROR_CODE_T E2
-                  ON R109X.LATEST_TEST_CODE = E2.ERROR_CODE
-
                 WHERE
                     A.WIP_GROUP LIKE '%B36R%'
                     AND B.MODEL_SERIAL = 'ADAPTER'
@@ -1327,7 +1290,73 @@ namespace API_WEB.Controllers.Repositories
                     WIP_GROUP_KANBAN = reader["WIP_GROUP_KANBAN"]?.ToString(),
                     WIP_GROUP_SFC = reader["WIP_GROUP_SFC"]?.ToString(),
                     ERROR_FLAG = reader["ERROR_FLAG"]?.ToString(),
-                    WORK_FLAG = reader["WORK_FLAG"]?.ToString(),
+                    WORK_FLAG = reader["WORK_FLAG"]?.ToString()
+                });
+            }
+            return result;
+        }
+
+        private async Task<List<BonepileAfterKanbanTestInfoResult>> ExecuteBonepileAfterKanbanTestInfoQuery(List<string> serialNumbers)
+        {
+            var result = new List<BonepileAfterKanbanTestInfoResult>();
+            if (serialNumbers == null || serialNumbers.Count == 0)
+            {
+                return result;
+            }
+
+            await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
+            await connection.OpenAsync();
+
+            var parameterNames = serialNumbers.Select((sn, idx) => $":sn{idx}").ToList();
+            var inClause = string.Join(",", parameterNames);
+
+            string query = $@"
+                SELECT
+                    A.SERIAL_NUMBER,
+                    COALESCE(C.TEST_GROUP, R109X.LATEST_TEST_GROUP) AS TEST_GROUP,
+                    COALESCE(C.TEST_TIME , R109X.LATEST_TEST_TIME ) AS TEST_TIME,
+                    COALESCE(C.TEST_CODE , R109X.LATEST_TEST_CODE ) AS TEST_CODE,
+                    COALESCE(E1.ERROR_DESC, E2.ERROR_DESC) AS ERROR_DESC,
+                    TRUNC(SYSDATE) - TRUNC(COALESCE(C.TEST_TIME, R109X.LATEST_TEST_TIME)) AS AGING
+                FROM SFISM4.Z_KANBAN_TRACKING_T A
+                LEFT JOIN SFISM4.R_REPAIR_TASK_T C
+                  ON C.SERIAL_NUMBER = A.SERIAL_NUMBER
+                LEFT JOIN (
+                    SELECT
+                        K.KEY_PART_SN,
+                        MAX(K.SERIAL_NUMBER) KEEP (DENSE_RANK LAST ORDER BY K.WORK_TIME) AS PARENT_SN
+                    FROM SFISM4.P_WIP_KEYPARTS_T K
+                    WHERE K.WORK_TIME IS NOT NULL
+                    GROUP BY K.KEY_PART_SN
+                ) KP
+                  ON KP.KEY_PART_SN = A.SERIAL_NUMBER
+                LEFT JOIN (
+                    SELECT
+                        R.SERIAL_NUMBER,
+                        MAX(R.TEST_TIME) AS LATEST_TEST_TIME,
+                        MAX(R.TEST_CODE) KEEP (DENSE_RANK LAST ORDER BY R.TEST_TIME) AS LATEST_TEST_CODE,
+                        MAX(R.TEST_GROUP) KEEP (DENSE_RANK LAST ORDER BY R.TEST_TIME) AS LATEST_TEST_GROUP
+                    FROM SFISM4.R109 R
+                    WHERE R.TEST_TIME IS NOT NULL
+                    GROUP BY R.SERIAL_NUMBER
+                ) R109X
+                  ON R109X.SERIAL_NUMBER = KP.PARENT_SN
+                LEFT JOIN SFIS1.C_ERROR_CODE_T E1 ON C.TEST_CODE = E1.ERROR_CODE
+                LEFT JOIN SFIS1.C_ERROR_CODE_T E2 ON R109X.LATEST_TEST_CODE = E2.ERROR_CODE
+                WHERE A.SERIAL_NUMBER IN ({inClause})";
+
+            using var command = new OracleCommand(query, connection);
+            for (int i = 0; i < serialNumbers.Count; i++)
+            {
+                command.Parameters.Add(parameterNames[i], OracleDbType.Varchar2).Value = serialNumbers[i];
+            }
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new BonepileAfterKanbanTestInfoResult
+                {
+                    SERIAL_NUMBER = reader["SERIAL_NUMBER"]?.ToString(),
                     TEST_GROUP = reader["TEST_GROUP"]?.ToString(),
                     TEST_TIME = reader["TEST_TIME"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["TEST_TIME"]),
                     TEST_CODE = reader["TEST_CODE"]?.ToString(),
@@ -1335,6 +1364,7 @@ namespace API_WEB.Controllers.Repositories
                     AGING = reader["AGING"] == DBNull.Value ? (double?)null : Convert.ToDouble(reader["AGING"])
                 });
             }
+
             return result;
         }
 

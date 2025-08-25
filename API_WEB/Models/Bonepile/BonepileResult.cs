@@ -82,4 +82,19 @@
         public string ERROR_DESC { get; set; }
         public double? AGING { get; set; }
     }
+
+    public class SerialNumberRequest
+    {
+        public List<string> SerialNumbers { get; set; }
+    }
+
+    public class BonepileAfterKanbanTestInfoResult
+    {
+        public string SERIAL_NUMBER { get; set; }
+        public string TEST_GROUP { get; set; }
+        public DateTime? TEST_TIME { get; set; }
+        public string TEST_CODE { get; set; }
+        public string ERROR_DESC { get; set; }
+        public double? AGING { get; set; }
+    }
 }
