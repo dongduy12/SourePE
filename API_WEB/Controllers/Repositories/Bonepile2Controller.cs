@@ -12,6 +12,7 @@ using OfficeOpenXml;
 using Oracle.ManagedDataAccess.Client;
 using System.Linq;
 using System.Runtime.Intrinsics.X86;
+using System.Collections.Generic;
 
 namespace API_WEB.Controllers.Repositories
 {
@@ -53,7 +54,7 @@ namespace API_WEB.Controllers.Repositories
                 if (!DateTime.TryParseExact(request.StartDate, "yyyy/MM/dd HH:mm", null, System.Globalization.DateTimeStyles.None, out _)
                     || !DateTime.TryParseExact(request.EndDate, "yyyy/MM/dd HH:mm", null, System.Globalization.DateTimeStyles.None, out _))
                 {
-                    return BadRequest(new { message = "Định dạng StartDate hoặc EndDate không hợp lệ. Vui lòng sử dụng định dạng yyyy/MM/dd HH:mm." });
+                    return BadRequest(new { message = "??nh d?ng StartDate ho?c EndDate khong h?p l?. Vui long s? d?ng ??nh d?ng yyyy/MM/dd HH:mm." });
                 }
 
                 //THuc thien truy van Oracle
@@ -82,7 +83,7 @@ namespace API_WEB.Controllers.Repositories
                     }
                     else
                     {
-                        // Không có dữ liệu trong ScrapLists, dùng ERROR_FLAG
+                        // Khong co d? li?u trong ScrapLists, dung ERROR_FLAG
                         status = b.ERROR_FLAG switch
                         {
                             "7" => "Repair",
@@ -90,7 +91,7 @@ namespace API_WEB.Controllers.Repositories
                             "1" => "CheckIn",
                             "0" => b.WIP_GROUP == "KANBAN_IN" ? "WaitingKanBanIn" : "Online",
                             "2" => "WaitingLink",
-                            _ => "Unknown" // Xử lý các giá trị ERROR_FLAG không xác định
+                            _ => "Unknown" // X? ly cac gia tr? ERROR_FLAG khong xac ??nh
                         };
                     }
                     return new
@@ -135,19 +136,19 @@ namespace API_WEB.Controllers.Repositories
             }
         }
 
-        // API mới: StatusCount
+        // API m?i: StatusCount
         [HttpPost("status-count")]
         public async Task<IActionResult> StatusCount([FromBody] StatusRequest request)
         {
             try
             {
-                // Kiểm tra đầu vào
+                // Ki?m tra ??u vao
                 if (request == null)
                 {
                     return BadRequest(new { message = "Yeu cau khong hop le!" });
                 }
 
-                // Nếu không có Statuses, sử dụng tất cả trạng thái hợp lệ
+                // N?u khong co Statuses, s? d?ng t?t c? tr?ng thai h?p l?
                 //var statuses = request.Statuses?.Any() == true ? request.Statuses : new List<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
                 var statuses = request.Statuses?.Any() == true ? request.Statuses : new List<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingKanBanIn", "WaitingApproveScrap", "Scrap" };
 
@@ -158,10 +159,10 @@ namespace API_WEB.Controllers.Repositories
                 if (!DateTime.TryParseExact(request.StartDate, "yyyy/MM/dd HH:mm", null, System.Globalization.DateTimeStyles.None, out _)
                     || !DateTime.TryParseExact(request.EndDate, "yyyy/MM/dd HH:mm", null, System.Globalization.DateTimeStyles.None, out _))
                 {
-                    return BadRequest(new { message = "Định dạng StartDate hoặc EndDate không hợp lệ. Vui lòng sử dụng định dạng yyyy/MM/dd HH:mm." });
+                    return BadRequest(new { message = "??nh d?ng StartDate ho?c EndDate khong h?p l?. Vui long s? d?ng ??nh d?ng yyyy/MM/dd HH:mm." });
                 }
 
-                // Thực hiện truy vấn Oracle
+                // Th?c hi?n truy v?n Oracle
                 var bonepileData = await ExecuteOracleQuery(request);
 
                 if (!bonepileData.Any())
@@ -169,13 +170,13 @@ namespace API_WEB.Controllers.Repositories
                     return NotFound(new { message = "Khong tim thay du lieu!!", count = 0, statusCounts = new { } });
                 }
 
-                // Lấy Category từ ScrapLists (SQL Server)
+                // L?y Category t? ScrapLists (SQL Server)
                 var scrapCategories = await _sqlContext.ScrapLists
                     .Where(s => bonepileData.Select(b => b.SN).Contains(s.SN))
                     .Select(s => new ScrapListCategory { SN = s.SN, Category = s.Category })
                     .ToListAsync();
 
-                // Xác định trạng thái và đếm số lượng
+                // Xac ??nh tr?ng thai va ??m s? l??ng
                 //var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
                 var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingKanBanIn", "WaitingApproveScrap", "Scrap" };
                 var statusCounts = new Dictionary<string, int>
@@ -212,14 +213,14 @@ namespace API_WEB.Controllers.Repositories
                         };
                     }
 
-                    // Chỉ đếm nếu trạng thái hợp lệ và nằm trong danh sách yêu cầu
+                    // Ch? ??m n?u tr?ng thai h?p l? va n?m trong danh sach yeu c?u
                     if (validStatuses.Contains(status) && request.Statuses.Contains(status))
                     {
                         statusCounts[status]++;
                     }
                 }
 
-                // Tổng số bản ghi khớp
+                // T?ng s? b?n ghi kh?p
                 int totalCount = statusCounts.Values.Sum();
 
                 if (totalCount == 0)
@@ -227,7 +228,7 @@ namespace API_WEB.Controllers.Repositories
                     return NotFound(new { message = "Khong tim thay du lieu!!", count = 0, statusCounts = new { } });
                 }
 
-                // Loại bỏ các trạng thái có số lượng 0 để trả về JSON gọn hơn
+                // Lo?i b? cac tr?ng thai co s? l??ng 0 ?? tr? v? JSON g?n h?n
                 var filteredStatusCounts = statusCounts
                     .Where(kv => kv.Value > 0)
                     .ToDictionary(kv => kv.Key, kv => kv.Value);
@@ -420,27 +421,27 @@ namespace API_WEB.Controllers.Repositories
             {
                 if (request == null)
                 {
-                    return BadRequest(new { message = "Yêu cầu không hợp lệ!" });
+                    return BadRequest(new { message = "Yeu c?u khong h?p l?!" });
                 }
 
                 bool filterByStatus = request.Statuses?.Any() == true;
                 //var statuses = filterByStatus ? request.Statuses : null;
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
-                // Lấy data từ Oracle
+                // L?y data t? Oracle
                 var allData = await ExecuteAdapterRepairQuery();
 
-                // Lấy ApplyTaskStatus từ ScrapLists
+                // L?y ApplyTaskStatus t? ScrapLists
                 var scrapCategories = await _sqlContext.ScrapLists
                     .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
                     .ToListAsync();
 
-                // Tạo từ điển ánh xạ SN với ApplyTaskStatus và TaskNumber
+                // T?o t? ?i?n anh x? SN v?i ApplyTaskStatus va TaskNumber
                 var scrapDict = scrapCategories.ToDictionary(
                     c => c.SN?.Trim().ToUpper() ?? "",
                     c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
                     StringComparer.OrdinalIgnoreCase
                 );
-                // Định nghĩa validStatuses
+                // ??nh ngh?a validStatuses
                 var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "Scrap Lacks Task",
@@ -454,14 +455,14 @@ namespace API_WEB.Controllers.Repositories
                     "Under repair in PD"
                 };
 
-                // Phân loại status theo yêu cầu
+                // Phan lo?i status theo yeu c?u
                 var result = allData
                     .Select(b =>
                     {
                         var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
                         string status;
 
-                        // Kiểm tra thông tin trong scrapDict
+                        // Ki?m tra thong tin trong scrapDict
                         if (scrapDict.TryGetValue(sn, out var scrapInfo))
                         {
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
@@ -482,12 +483,12 @@ namespace API_WEB.Controllers.Repositories
                                 };
                             }
                         }
-                        // Kiểm tra MO_NUMBER
+                        // Ki?m tra MO_NUMBER
                         else if (b.MO_NUMBER?.Trim().StartsWith("4") == true)
                         {
                             status = "Rework FG";
                         }
-                        // Kiểm tra ERROR_FLAG
+                        // Ki?m tra ERROR_FLAG
                         else
                         {
                             status = b.ERROR_FLAG switch
@@ -527,7 +528,7 @@ namespace API_WEB.Controllers.Repositories
 
                 if (!result.Any())
                 {
-                    return NotFound(new { message = "Không tìm thấy dữ liệu!", count = 0 });
+                    return NotFound(new { message = "Khong tim th?y d? li?u!", count = 0 });
                 }
 
                 return Ok(new
@@ -538,7 +539,7 @@ namespace API_WEB.Controllers.Repositories
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
             }
         }
         [HttpGet("adapter-repair-status-count")]
@@ -555,20 +556,20 @@ namespace API_WEB.Controllers.Repositories
                 //    c => c.ApplyTaskStatus,
                 //    StringComparer.OrdinalIgnoreCase
                 //);
-                // Tạo từ điển ánh xạ SN với ApplyTaskStatus và TaskNumber
+                // T?o t? ?i?n anh x? SN v?i ApplyTaskStatus va TaskNumber
                 var scrapDict = scrapCategories.ToDictionary(
                     c => c.SN?.Trim().ToUpper() ?? "",
                     c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
                     StringComparer.OrdinalIgnoreCase
                 );
-                // Phân loại trạng thái cho từng bản ghi
+                // Phan lo?i tr?ng thai cho t?ng b?n ghi
                 var result = repairTaskData
                     .Select(b =>
                     {
                         var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
                         string status;
 
-                        // Kiểm tra thông tin trong scrapDict
+                        // Ki?m tra thong tin trong scrapDict
                         if (scrapDict.TryGetValue(sn, out var scrapInfo))
                         {
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
@@ -589,12 +590,12 @@ namespace API_WEB.Controllers.Repositories
                                 };
                             }
                         }
-                        // Kiểm tra MO_NUMBER
+                        // Ki?m tra MO_NUMBER
                         else if (b.MO_NUMBER?.Trim().StartsWith("4") == true)
                         {
                             status = "Rework FG";
                         }
-                        // Kiểm tra ERROR_FLAG
+                        // Ki?m tra ERROR_FLAG
                         else
                         {
                             status = b.ERROR_FLAG switch
@@ -627,7 +628,7 @@ namespace API_WEB.Controllers.Repositories
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
             }
         }
 
@@ -752,7 +753,7 @@ namespace API_WEB.Controllers.Repositories
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
             }
         }
         private async Task<List<RepairTaskResult>> ExecuteAdapterRepairQuery()
@@ -777,12 +778,12 @@ namespace API_WEB.Controllers.Repositories
                         error_desc.ERROR_DESC,
                         repair_task.DATA11,
 
-                        -- Gộp DATA19 theo từng SERIAL_NUMBER (chỉ lấy các dòng DATA17 = Confirm/Save (không phân biệt hoa thường))
+                        -- G?p DATA19 theo t?ng SERIAL_NUMBER (ch? l?y cac dong DATA17 = Confirm/Save (khong phan bi?t hoa th??ng))
                         rt19.DATA19_COMBINED,
 
-                        /* mốc CHECK_IN đầu tiên */
+                        /* m?c CHECK_IN ??u tien */
                         chkin.first_checkin_date AS CHECKIN_DATE,
-                        /* Aging theo ngày (số ngày kể từ CHECK_IN đầu tiên tới hiện tại) */
+                        /* Aging theo ngay (s? ngay k? t? CHECK_IN ??u tien t?i hi?n t?i) */
                         TRUNC(SYSDATE - chkin.first_checkin_date) AS AGING_DAY
                     FROM sfism4.r107 r107
                     JOIN sfis1.c_model_desc_t model_desc
@@ -791,7 +792,7 @@ namespace API_WEB.Controllers.Repositories
                     LEFT JOIN sfism4.r_repair_task_t repair_task
                       ON r107.SERIAL_NUMBER = repair_task.SERIAL_NUMBER
 
-                    /* Lấy CHECK_IN đầu tiên (DATE3 nhỏ nhất) cho mỗi SERIAL_NUMBER */
+                    /* L?y CHECK_IN ??u tien (DATE3 nh? nh?t) cho m?i SERIAL_NUMBER */
                     LEFT JOIN (
                         SELECT
                             d.SERIAL_NUMBER,
@@ -802,7 +803,7 @@ namespace API_WEB.Controllers.Repositories
                     ) chkin
                       ON chkin.SERIAL_NUMBER = r107.SERIAL_NUMBER
 
-                    /* Gộp DATA19 cho mỗi SERIAL_NUMBER, chỉ lấy khi DATA17 là Confirm/Save (không phân biệt hoa thường) */
+                    /* G?p DATA19 cho m?i SERIAL_NUMBER, ch? l?y khi DATA17 la Confirm/Save (khong phan bi?t hoa th??ng) */
                     LEFT JOIN (
                         SELECT
                             d.SERIAL_NUMBER,
@@ -814,7 +815,7 @@ namespace API_WEB.Controllers.Repositories
                     ) rt19
                       ON rt19.SERIAL_NUMBER = r107.SERIAL_NUMBER
 
-                    /* Lấy bản ghi TEST_CODE mới nhất từ R109 theo từng SERIAL_NUMBER */
+                    /* L?y b?n ghi TEST_CODE m?i nh?t t? R109 theo t?ng SERIAL_NUMBER */
                     LEFT JOIN (
                         SELECT SERIAL_NUMBER, TEST_CODE, TEST_TIME, TEST_GROUP
                         FROM (
@@ -847,9 +848,9 @@ namespace API_WEB.Controllers.Repositories
                       AND r107.WIP_GROUP NOT LIKE '%BR2C%'
                       AND r107.WIP_GROUP NOT LIKE '%BCFA%'
                       AND (
-                            /* Nhóm cũ: ERROR_FLAG 7 hoặc 8 */
+                            /* Nhom c?: ERROR_FLAG 7 ho?c 8 */
                             r107.ERROR_FLAG IN ('7','8')
-                            /* Nhóm bổ sung: ERROR_FLAG = 1 và test mới nhất ngoài 8 giờ gần nhất */
+                            /* Nhom b? sung: ERROR_FLAG = 1 va test m?i nh?t ngoai 8 gi? g?n nh?t */
                             OR ( r107.ERROR_FLAG = '1'
                                  AND r109_latest.TEST_TIME <= SYSDATE - (8/24)
                                )
@@ -899,19 +900,19 @@ namespace API_WEB.Controllers.Repositories
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        /// 
-        [HttpPost("bonepile-after-kanban")]
-        public async Task<IActionResult> BonepileAfterKanban([FromBody] StatusRequestBonepile request)
+        ///
+        [HttpPost("bonepile-after-kanban-basic")]
+        public async Task<IActionResult> BonepileAfterKanbanBasic([FromBody] StatusRequestBonepile request)
         {
             try
             {
                 if (request == null)
                 {
-                    return BadRequest(new { message = "Yêu cầu không hợp lệ!" });
+                    return BadRequest(new { message = "Yeu c?u khong h?p l?!" });
                 }
                 bool filterByStatus = request.Statuses?.Any() == true;
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
-                var allData = await ExecuteBonepileAfterKanbanQuery();
+                var allData = await ExecuteBonepileAfterKanbanBasicQuery();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -963,8 +964,6 @@ namespace API_WEB.Controllers.Repositories
                     {
                         var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
                         string status;
-
-                        var groupKanban = b.WIP_GROUP_KANBAN?.Trim();
                         if (scrapDict.TryGetValue(sn, out var scrapInfo))
                         {
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
@@ -994,20 +993,12 @@ namespace API_WEB.Controllers.Repositories
                         {
                             if (exportDict.TryGetValue(sn, out var exportInfo))
                             {
-                                var testTime = b.TEST_TIME;
-                                if (exportInfo.ExportDate.HasValue && testTime.HasValue && exportInfo.ExportDate < testTime)
+                                status = exportInfo.CheckingB36R switch
                                 {
-                                    status = "RepairInRE";
-                                }
-                                else
-                                {
-                                    status = exportInfo.CheckingB36R switch
-                                    {
-                                        1 => "WaitingLink",
-                                        2 => "Linked",
-                                        _ => "RepairInRE",
-                                    };
-                                }
+                                    1 => "WaitingLink",
+                                    2 => "Linked",
+                                    _ => "RepairInRE",
+                                };
                             }
                             else
                             {
@@ -1024,11 +1015,6 @@ namespace API_WEB.Controllers.Repositories
                             WipGroupKANBAN = b.WIP_GROUP_KANBAN,
                             ErrorFlag = b.ERROR_FLAG,
                             WorkFlag = b.WORK_FLAG,
-                            testTime = b.TEST_TIME,
-                            testCode = b.TEST_CODE,
-                            errorDesc = b.ERROR_DESC,
-                            testGroup = b.TEST_GROUP,
-                            aging = b.AGING,
                             Status = status
                         };
                     })
@@ -1040,7 +1026,7 @@ namespace API_WEB.Controllers.Repositories
 
                 if (!result.Any())
                 {
-                    return NotFound(new { message = "Không tìm thấy dữ liệu!", count = 0 });
+                    return NotFound(new { message = "Khong tim th?y d? li?u!", count = 0 });
                 }
 
                 return Ok(new
@@ -1054,12 +1040,37 @@ namespace API_WEB.Controllers.Repositories
                 return StatusCode(500, new { message = "Xay ra loi", error = ex.Message });
             }
         }
+
+        [HttpPost("bonepile-after-kanban-testinfo")]
+        public async Task<IActionResult> BonepileAfterKanbanTestInfo([FromBody] SerialNumberBonepileRequest request)
+        {
+            try
+            {
+                if (request?.SerialNumbers == null || request.SerialNumbers.Count == 0)
+                {
+                    return BadRequest(new { message = "Danh sach SN khong h?p l?!" });
+                }
+
+                var data = await ExecuteBonepileAfterKanbanTestInfoQuery(request.SerialNumbers);
+
+                return Ok(new
+                {
+                    count = data.Count,
+                    data
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xay ra loi", error = ex.Message });
+            }
+        }
+
         [HttpGet("bonepile-after-kanban-count")]
         public async Task<IActionResult> BonepileAfterKanbanCount()
         {
             try
             {
-                var repairTaskData = await ExecuteBonepileAfterKanbanQuery();
+                var repairTaskData = await ExecuteBonepileAfterKanbanBasicQuery();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -1099,8 +1110,6 @@ namespace API_WEB.Controllers.Repositories
                     var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
                     string status;
 
-                    var groupKanban = b.WIP_GROUP_KANBAN?.Trim();
-
                     if (scrapDict.TryGetValue(sn, out var scrapInfo))
                     {
                         var applyTaskStatus = scrapInfo.ApplyTaskStatus;
@@ -1130,20 +1139,12 @@ namespace API_WEB.Controllers.Repositories
                     {
                         if (exportDict.TryGetValue(sn, out var exportInfo))
                         {
-                            var testTime = b.TEST_TIME;
-                            if (exportInfo.ExportDate.HasValue && testTime.HasValue && exportInfo.ExportDate < testTime)
+                            status = exportInfo.CheckingB36R switch
                             {
-                                status = "RepairInRE";
-                            }
-                            else
-                            {
-                                status = exportInfo.CheckingB36R switch
-                                {
-                                    1 => "WaitingLink",
-                                    2 => "Linked",
-                                    _ => "RepairInRE",
-                                };
-                            }
+                                1 => "WaitingLink",
+                                2 => "Linked",
+                                _ => "RepairInRE",
+                            };
                         }
                         else
                         {
@@ -1168,39 +1169,50 @@ namespace API_WEB.Controllers.Repositories
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
             }
         }
-
 
         [HttpGet("bonepile-after-kanban-aging-count")]
         public async Task<IActionResult> BonepileAfterKanbanAgingCount()
         {
             try
             {
-                var allData = await ExecuteBonepileAfterKanbanQuery();
+                var basicData = await ExecuteBonepileAfterKanbanBasicQuery();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
                 {
-                    allData = allData.Where(d => !excludedSNs.Contains(d.SERIAL_NUMBER?.Trim().ToUpper())).ToList();
+                    basicData = basicData.Where(d => !excludedSNs.Contains(d.SERIAL_NUMBER?.Trim().ToUpper())).ToList();
                 }
 
-                var records = allData
-                    .Select(b => new
+                var snList = basicData
+                    .Select(d => d.SERIAL_NUMBER?.Trim().ToUpper())
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToList();
+
+                var testInfos = await ExecuteBonepileAfterKanbanTestInfoQuery(snList);
+                var testInfoDict = testInfos.ToDictionary(t => t.SERIAL_NUMBER?.Trim().ToUpper() ?? "", StringComparer.OrdinalIgnoreCase);
+
+                var records = basicData
+                    .Select(b =>
                     {
-                        SN = b.SERIAL_NUMBER,
-                        ModelName = b.MODEL_NAME,
-                        MoNumber = b.MO_NUMBER,
-                        ProductLine = b.PRODUCT_LINE,
-                        WipGroupSFC = b.WIP_GROUP_SFC,
-                        WipGroupKANBAN = b.WIP_GROUP_KANBAN,
-                        testTime = b.TEST_TIME,
-                        testCode = b.TEST_CODE,
-                        errorDesc = b.ERROR_DESC,
-                        testGroup = b.TEST_GROUP,
-                        errorFlag = b.ERROR_FLAG,
-                        aging = b.AGING
+                        testInfoDict.TryGetValue(b.SERIAL_NUMBER?.Trim().ToUpper() ?? "", out var t);
+                        return new
+                        {
+                            SN = b.SERIAL_NUMBER,
+                            ModelName = b.MODEL_NAME,
+                            MoNumber = b.MO_NUMBER,
+                            ProductLine = b.PRODUCT_LINE,
+                            WipGroupSFC = b.WIP_GROUP_SFC,
+                            WipGroupKANBAN = b.WIP_GROUP_KANBAN,
+                            testTime = t?.TEST_TIME,
+                            testCode = t?.TEST_CODE,
+                            errorDesc = t?.ERROR_DESC,
+                            testGroup = t?.TEST_GROUP,
+                            errorFlag = b.ERROR_FLAG,
+                            aging = t?.AGING
+                        };
                     })
                     .ToList();
 
@@ -1232,11 +1244,11 @@ namespace API_WEB.Controllers.Repositories
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
             }
         }
 
-        private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanQuery()
+        private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanBasicQuery()
         {
             var result = new List<BonepileAfterKanbanResult>();
 
@@ -1252,67 +1264,17 @@ namespace API_WEB.Controllers.Repositories
                     A.WIP_GROUP AS WIP_GROUP_KANBAN,
                     R107.WIP_GROUP AS WIP_GROUP_SFC,
                     R107.ERROR_FLAG,
-                    R107.WORK_FLAG,
-
-                    /* ƯU TIÊN LẤY TỪ R_REPAIR_TASK_T, NẾU NULL THÌ LẤY TỪ R109 (QUA KEYPARTS) */
-                    COALESCE(C.TEST_GROUP, R109X.LATEST_TEST_GROUP) AS TEST_GROUP,
-                    COALESCE(C.TEST_TIME , R109X.LATEST_TEST_TIME ) AS TEST_TIME,
-                    COALESCE(C.TEST_CODE , R109X.LATEST_TEST_CODE ) AS TEST_CODE,
-
-                    /* LẤY ERROR_DESC TƯƠNG ỨNG VỚI TEST_CODE ƯU TIÊN */
-                    COALESCE(E1.ERROR_DESC, E2.ERROR_DESC) AS ERROR_DESC,
-
-                    /* AGING TÍNH THEO NGUỒN TEST_TIME SAU KHI FALLBACK */
-                    TRUNC(SYSDATE) - TRUNC(COALESCE(C.TEST_TIME, R109X.LATEST_TEST_TIME)) AS AGING
-
+                    R107.WORK_FLAG
                 FROM SFISM4.Z_KANBAN_TRACKING_T A
                 JOIN SFIS1.C_MODEL_DESC_T B
                   ON A.MODEL_NAME = B.MODEL_NAME
                 JOIN SFISM4.R107 R107
                   ON R107.SERIAL_NUMBER = A.SERIAL_NUMBER
-
-                /* TASK TRỰC TIẾP THEO SN CỦA Z_KANBAN_TRACKING */
-                LEFT JOIN SFISM4.R_REPAIR_TASK_T C
-                  ON C.SERIAL_NUMBER = A.SERIAL_NUMBER
-
-                /* LẤY SERIAL_NUMBER “CHA” MỚI NHẤT THEO WORK_TIME TRONG P_WIP_KEYPARTS_T
-                   (KEY_PART_SN = SN TRONG Z_KANBAN_TRACKING) */
-                LEFT JOIN (
-                    SELECT
-                        K.KEY_PART_SN,
-                        MAX(K.SERIAL_NUMBER) KEEP (DENSE_RANK LAST ORDER BY K.WORK_TIME) AS PARENT_SN,
-                        MAX(K.WORK_TIME) AS LATEST_WORK_TIME
-                    FROM SFISM4.P_WIP_KEYPARTS_T K
-                    WHERE K.WORK_TIME IS NOT NULL
-                    GROUP BY K.KEY_PART_SN
-                ) KP
-                  ON KP.KEY_PART_SN = A.SERIAL_NUMBER
-
-                /* TỪ PARENT_SN Ở TRÊN, LẤY TEST_* MỚI NHẤT TRONG R109 (THEO TEST_TIME) */
-                LEFT JOIN (
-                    SELECT
-                        R.SERIAL_NUMBER,
-                        MAX(R.TEST_TIME) AS LATEST_TEST_TIME,
-                        MAX(R.TEST_CODE) KEEP (DENSE_RANK LAST ORDER BY R.TEST_TIME) AS LATEST_TEST_CODE,
-                        MAX(R.TEST_GROUP) KEEP (DENSE_RANK LAST ORDER BY R.TEST_TIME) AS LATEST_TEST_GROUP
-                    FROM SFISM4.R109 R
-                    WHERE R.TEST_TIME IS NOT NULL
-                    GROUP BY R.SERIAL_NUMBER
-                ) R109X
-                  ON R109X.SERIAL_NUMBER = KP.PARENT_SN
-
-                /* JOIN BẢNG ERROR_CODE TỪ 2 NGUỒN TEST_CODE */
-                LEFT JOIN SFIS1.C_ERROR_CODE_T E1
-                  ON C.TEST_CODE = E1.ERROR_CODE
-
-                LEFT JOIN SFIS1.C_ERROR_CODE_T E2
-                  ON R109X.LATEST_TEST_CODE = E2.ERROR_CODE
-
                 WHERE
                     A.WIP_GROUP LIKE '%B36R%'
                     AND B.MODEL_SERIAL = 'ADAPTER'
                     AND R107.WIP_GROUP NOT LIKE '%BR2C%'
-                    AND R107.WIP_GROUP NOT LIKE '%BR2C%'";
+                    AND R107.WIP_GROUP NOT LIKE '%BCFA%'";
 
             using var command = new OracleCommand(query, connection);
             using var reader = await command.ExecuteReaderAsync();
@@ -1327,7 +1289,73 @@ namespace API_WEB.Controllers.Repositories
                     WIP_GROUP_KANBAN = reader["WIP_GROUP_KANBAN"]?.ToString(),
                     WIP_GROUP_SFC = reader["WIP_GROUP_SFC"]?.ToString(),
                     ERROR_FLAG = reader["ERROR_FLAG"]?.ToString(),
-                    WORK_FLAG = reader["WORK_FLAG"]?.ToString(),
+                    WORK_FLAG = reader["WORK_FLAG"]?.ToString()
+                });
+            }
+            return result;
+        }
+
+        private async Task<List<BonepileAfterKanbanTestInfoResult>> ExecuteBonepileAfterKanbanTestInfoQuery(List<string> serialNumbers)
+        {
+            var result = new List<BonepileAfterKanbanTestInfoResult>();
+            if (serialNumbers == null || serialNumbers.Count == 0)
+            {
+                return result;
+            }
+
+            await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
+            await connection.OpenAsync();
+
+            var parameterNames = serialNumbers.Select((sn, idx) => $":sn{idx}").ToList();
+            var inClause = string.Join(",", parameterNames);
+
+            string query = $@"
+                SELECT
+                    A.SERIAL_NUMBER,
+                    COALESCE(C.TEST_GROUP, R109X.LATEST_TEST_GROUP) AS TEST_GROUP,
+                    COALESCE(C.TEST_TIME , R109X.LATEST_TEST_TIME ) AS TEST_TIME,
+                    COALESCE(C.TEST_CODE , R109X.LATEST_TEST_CODE ) AS TEST_CODE,
+                    COALESCE(E1.ERROR_DESC, E2.ERROR_DESC) AS ERROR_DESC,
+                    TRUNC(SYSDATE) - TRUNC(COALESCE(C.TEST_TIME, R109X.LATEST_TEST_TIME)) AS AGING
+                FROM SFISM4.Z_KANBAN_TRACKING_T A
+                LEFT JOIN SFISM4.R_REPAIR_TASK_T C
+                  ON C.SERIAL_NUMBER = A.SERIAL_NUMBER
+                LEFT JOIN (
+                    SELECT
+                        K.KEY_PART_SN,
+                        MAX(K.SERIAL_NUMBER) KEEP (DENSE_RANK LAST ORDER BY K.WORK_TIME) AS PARENT_SN
+                    FROM SFISM4.P_WIP_KEYPARTS_T K
+                    WHERE K.WORK_TIME IS NOT NULL
+                    GROUP BY K.KEY_PART_SN
+                ) KP
+                  ON KP.KEY_PART_SN = A.SERIAL_NUMBER
+                LEFT JOIN (
+                    SELECT
+                        R.SERIAL_NUMBER,
+                        MAX(R.TEST_TIME) AS LATEST_TEST_TIME,
+                        MAX(R.TEST_CODE) KEEP (DENSE_RANK LAST ORDER BY R.TEST_TIME) AS LATEST_TEST_CODE,
+                        MAX(R.TEST_GROUP) KEEP (DENSE_RANK LAST ORDER BY R.TEST_TIME) AS LATEST_TEST_GROUP
+                    FROM SFISM4.R109 R
+                    WHERE R.TEST_TIME IS NOT NULL
+                    GROUP BY R.SERIAL_NUMBER
+                ) R109X
+                  ON R109X.SERIAL_NUMBER = KP.PARENT_SN
+                LEFT JOIN SFIS1.C_ERROR_CODE_T E1 ON C.TEST_CODE = E1.ERROR_CODE
+                LEFT JOIN SFIS1.C_ERROR_CODE_T E2 ON R109X.LATEST_TEST_CODE = E2.ERROR_CODE
+                WHERE A.SERIAL_NUMBER IN ({inClause})";
+
+            using var command = new OracleCommand(query, connection);
+            for (int i = 0; i < serialNumbers.Count; i++)
+            {
+                command.Parameters.Add(parameterNames[i], OracleDbType.Varchar2).Value = serialNumbers[i];
+            }
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new BonepileAfterKanbanTestInfoResult
+                {
+                    SERIAL_NUMBER = reader["SERIAL_NUMBER"]?.ToString(),
                     TEST_GROUP = reader["TEST_GROUP"]?.ToString(),
                     TEST_TIME = reader["TEST_TIME"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["TEST_TIME"]),
                     TEST_CODE = reader["TEST_CODE"]?.ToString(),
@@ -1335,6 +1363,7 @@ namespace API_WEB.Controllers.Repositories
                     AGING = reader["AGING"] == DBNull.Value ? (double?)null : Convert.ToDouble(reader["AGING"])
                 });
             }
+
             return result;
         }
 
@@ -1375,16 +1404,16 @@ namespace API_WEB.Controllers.Repositories
             {
                 if (request == null)
                 {
-                    return BadRequest(new { message = "Yêu cầu không hợp lệ!" });
+                    return BadRequest(new { message = "Yeu c?u khong h?p l?!" });
                 }
 
                 bool filterByStatus = request.Statuses?.Any() == true;
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
 
-                // Lấy data từ Oracle
+                // L?y data t? Oracle
                 var allData = await ExecuteAdapterMoQuery();
 
-                // Lấy ApplyTaskStatus từ ScrapLists
+                // L?y ApplyTaskStatus t? ScrapLists
                 var scrapCategories = await _sqlContext.ScrapLists
                     .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
                     .ToListAsync();
@@ -1395,7 +1424,7 @@ namespace API_WEB.Controllers.Repositories
                     StringComparer.OrdinalIgnoreCase
                 );
 
-                // Định nghĩa validStatuses
+                // ??nh ngh?a validStatuses
                 var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "Scrap Lacks Task",
@@ -1403,18 +1432,18 @@ namespace API_WEB.Controllers.Repositories
                     "Approved BGA",
                     "Waiting approve BGA",
                     "Waiting approve scrap",
-                    "Chờ Link",
-                    "Đã Mở MO"
+                    "Ch? Link",
+                    "?a M? MO"
                 };
 
-                // Phân loại status
+                // Phan lo?i status
                 var result = allData
                     .Select(b =>
                     {
                         var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
                         string status;
 
-                        // Kiểm tra thông tin trong scrapDict
+                        // Ki?m tra thong tin trong scrapDict
                         if (scrapDict.TryGetValue(sn, out var scrapInfo))
                         {
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
@@ -1461,7 +1490,7 @@ namespace API_WEB.Controllers.Repositories
 
                 if (!result.Any())
                 {
-                    return NotFound(new { message = "Không tìm thấy dữ liệu!", count = 0 });
+                    return NotFound(new { message = "Khong tim th?y d? li?u!", count = 0 });
                 }
 
                 return Ok(new
@@ -1472,7 +1501,7 @@ namespace API_WEB.Controllers.Repositories
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
             }
         }
 
@@ -1492,7 +1521,7 @@ namespace API_WEB.Controllers.Repositories
                     StringComparer.OrdinalIgnoreCase
                 );
 
-                // Phân loại trạng thái
+                // Phan lo?i tr?ng thai
                 var result = moData
                     .Select(b =>
                     {
@@ -1545,7 +1574,7 @@ namespace API_WEB.Controllers.Repositories
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
             }
         }
 
@@ -1566,7 +1595,7 @@ namespace API_WEB.Controllers.Repositories
                     R109.TEST_GROUP,
                     R109.TEST_CODE,
                     R109.TEST_TIME,
-                    'CHỜ LINK' AS MO_STATUS
+                    'CH? LINK' AS MO_STATUS
                 FROM 
                     SFISM4.R107 r107
                 INNER JOIN 
@@ -1599,7 +1628,7 @@ namespace API_WEB.Controllers.Repositories
                     R109.TEST_GROUP,
                     R109.TEST_CODE,
                     R109.TEST_TIME,
-                    'Đã Mở MO' AS MO_STATUS
+                    '?a M? MO' AS MO_STATUS
                 FROM 
                     SFISM4.R107 r107
                 INNER JOIN 

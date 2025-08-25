@@ -63,7 +63,7 @@
         public string? STATUS { get; set; }
         public string? AGING_DAY { get; set; }
         public DateTime? CHECKIN_DATE { get; set; }
-    } 
+    }
 
     // Result model for bonepile after kanban query
     public class BonepileAfterKanbanResult
@@ -76,6 +76,21 @@
         public string WIP_GROUP_SFC { get; set; }
         public string ERROR_FLAG { get; set; }
         public string WORK_FLAG { get; set; }
+        public string TEST_GROUP { get; set; }
+        public DateTime? TEST_TIME { get; set; }
+        public string TEST_CODE { get; set; }
+        public string ERROR_DESC { get; set; }
+        public double? AGING { get; set; }
+    }
+
+    public class SerialNumberBonepileRequest
+    {
+        public List<string> SerialNumbers { get; set; }
+    }
+
+    public class BonepileAfterKanbanTestInfoResult
+    {
+        public string SERIAL_NUMBER { get; set; }
         public string TEST_GROUP { get; set; }
         public DateTime? TEST_TIME { get; set; }
         public string TEST_CODE { get; set; }
