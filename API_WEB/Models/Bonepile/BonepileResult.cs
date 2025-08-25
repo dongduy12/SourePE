@@ -1,4 +1,7 @@
-﻿namespace API_WEB.Models.Bonepile
+using System;
+using System.Collections.Generic;
+
+namespace API_WEB.Models.Bonepile
 {
     public class BonepileResult
     {
@@ -63,7 +66,7 @@
         public string? STATUS { get; set; }
         public string? AGING_DAY { get; set; }
         public DateTime? CHECKIN_DATE { get; set; }
-    } 
+    }
 
     // Result model for bonepile after kanban query
     public class BonepileAfterKanbanResult
@@ -98,3 +101,4 @@
         public double? AGING { get; set; }
     }
 }
+
