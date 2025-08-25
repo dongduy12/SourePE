@@ -1,4 +1,7 @@
-﻿namespace API_WEB.Models.Bonepile
+using System;
+using System.Collections.Generic;
+
+namespace API_WEB.Models.Bonepile
 {
     public class BonepileResult
     {
@@ -63,7 +66,7 @@
         public string? STATUS { get; set; }
         public string? AGING_DAY { get; set; }
         public DateTime? CHECKIN_DATE { get; set; }
-    } 
+    }
 
     // Result model for bonepile after kanban query
     public class BonepileAfterKanbanResult
@@ -82,4 +85,33 @@
         public string ERROR_DESC { get; set; }
         public double? AGING { get; set; }
     }
+
+    public class BonepileAfterKanbanBasicRecord
+    {
+        public string SN { get; set; }
+        public string ModelName { get; set; }
+        public string MoNumber { get; set; }
+        public string ProductLine { get; set; }
+        public string WipGroupSFC { get; set; }
+        public string WipGroupKANBAN { get; set; }
+        public string ErrorFlag { get; set; }
+        public string WorkFlag { get; set; }
+        public string Status { get; set; }
+    }
+
+    public class BonepileSerialNumberRequest
+    {
+        public List<string> SerialNumbers { get; set; }
+    }
+
+    public class BonepileAfterKanbanTestInfoResult
+    {
+        public string SN { get; set; }
+        public string TEST_GROUP { get; set; }
+        public DateTime? TEST_TIME { get; set; }
+        public string TEST_CODE { get; set; }
+        public string ERROR_DESC { get; set; }
+        public double? AGING { get; set; }
+    }
 }
+
