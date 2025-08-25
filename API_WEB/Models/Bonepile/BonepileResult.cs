@@ -90,7 +90,7 @@
 
     public class BonepileAfterKanbanTestInfoResult
     {
-        public string SERIAL_NUMBER { get; set; }
+        public string SN { get; set; }
         public string TEST_GROUP { get; set; }
         public DateTime? TEST_TIME { get; set; }
         public string TEST_CODE { get; set; }

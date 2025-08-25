@@ -1356,7 +1356,7 @@ namespace API_WEB.Controllers.Repositories
             {
                 result.Add(new BonepileAfterKanbanTestInfoResult
                 {
-                    SERIAL_NUMBER = reader["SERIAL_NUMBER"]?.ToString(),
+                    SN = reader["SERIAL_NUMBER"]?.ToString(),
                     TEST_GROUP = reader["TEST_GROUP"]?.ToString(),
                     TEST_TIME = reader["TEST_TIME"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["TEST_TIME"]),
                     TEST_CODE = reader["TEST_CODE"]?.ToString(),
