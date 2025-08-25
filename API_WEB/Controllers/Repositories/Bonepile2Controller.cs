@@ -1042,7 +1042,7 @@ namespace API_WEB.Controllers.Repositories
         }
 
         [HttpPost("bonepile-after-kanban-testinfo")]
-        public async Task<IActionResult> BonepileAfterKanbanTestInfo([FromBody] SerialNumberRequest request)
+        public async Task<IActionResult> BonepileAfterKanbanTestInfo([FromBody] SerialNumberBonepileRequest request)
         {
             try
             {
@@ -1172,7 +1172,6 @@ namespace API_WEB.Controllers.Repositories
                 return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
             }
         }
-
 
         [HttpGet("bonepile-after-kanban-aging-count")]
         public async Task<IActionResult> BonepileAfterKanbanAgingCount()

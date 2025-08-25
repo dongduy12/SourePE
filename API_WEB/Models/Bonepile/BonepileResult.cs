@@ -83,7 +83,7 @@
         public double? AGING { get; set; }
     }
 
-    public class SerialNumberRequest
+    public class SerialNumberBonepileRequest
     {
         public List<string> SerialNumbers { get; set; }
     }
