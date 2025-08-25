@@ -2,17 +2,14 @@
 using API_WEB.Models.Repositories;
 using API_WEB.ModelsDB;
 using API_WEB.ModelsOracle;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.InkML;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using Oracle.ManagedDataAccess.Client;
-using System.Linq;
-using System.Runtime.Intrinsics.X86;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace API_WEB.Controllers.Repositories
 {
