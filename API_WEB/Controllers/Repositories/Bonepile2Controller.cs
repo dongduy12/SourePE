@@ -1306,10 +1306,14 @@ namespace API_WEB.Controllers.Repositories
             await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
             await connection.OpenAsync();
 
-            var parameterNames = serialNumbers.Select((sn, idx) => $":sn{idx}").ToList();
-            var inClause = string.Join(",", parameterNames);
+            var batchSize = 1000; // Tránh lỗi ORA-01795 bằng cách chia nhỏ danh sách
+            for (int i = 0; i < serialNumbers.Count; i += batchSize)
+            {
+                var batch = serialNumbers.Skip(i).Take(batchSize).ToList();
+                var parameterNames = batch.Select((sn, idx) => $":sn{idx}").ToList();
+                var inClause = string.Join(",", parameterNames);
 
-            string query = $@"
+                string query = $@"
                 SELECT
                     A.SERIAL_NUMBER,
                     COALESCE(C.TEST_GROUP, R109X.LATEST_TEST_GROUP) AS TEST_GROUP,
@@ -1344,24 +1348,25 @@ namespace API_WEB.Controllers.Repositories
                 LEFT JOIN SFIS1.C_ERROR_CODE_T E2 ON R109X.LATEST_TEST_CODE = E2.ERROR_CODE
                 WHERE A.SERIAL_NUMBER IN ({inClause})";
 
-            using var command = new OracleCommand(query, connection);
-            for (int i = 0; i < serialNumbers.Count; i++)
-            {
-                command.Parameters.Add(parameterNames[i], OracleDbType.Varchar2).Value = serialNumbers[i];
-            }
-
-            using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                result.Add(new BonepileAfterKanbanTestInfoResult
+                using var command = new OracleCommand(query, connection);
+                for (int j = 0; j < batch.Count; j++)
                 {
-                    SERIAL_NUMBER = reader["SERIAL_NUMBER"]?.ToString(),
-                    TEST_GROUP = reader["TEST_GROUP"]?.ToString(),
-                    TEST_TIME = reader["TEST_TIME"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["TEST_TIME"]),
-                    TEST_CODE = reader["TEST_CODE"]?.ToString(),
-                    ERROR_DESC = reader["ERROR_DESC"]?.ToString(),
-                    AGING = reader["AGING"] == DBNull.Value ? (double?)null : Convert.ToDouble(reader["AGING"])
-                });
+                    command.Parameters.Add(parameterNames[j], OracleDbType.Varchar2).Value = batch[j];
+                }
+
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    result.Add(new BonepileAfterKanbanTestInfoResult
+                    {
+                        SERIAL_NUMBER = reader["SERIAL_NUMBER"]?.ToString(),
+                        TEST_GROUP = reader["TEST_GROUP"]?.ToString(),
+                        TEST_TIME = reader["TEST_TIME"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["TEST_TIME"]),
+                        TEST_CODE = reader["TEST_CODE"]?.ToString(),
+                        ERROR_DESC = reader["ERROR_DESC"]?.ToString(),
+                        AGING = reader["AGING"] == DBNull.Value ? (double?)null : Convert.ToDouble(reader["AGING"])
+                    });
+                }
             }
 
             return result;
