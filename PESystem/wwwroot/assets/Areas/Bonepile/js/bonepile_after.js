@@ -2,7 +2,8 @@
     const apiBase = "http://10.220.130.119:9090/api/Bonepile2";
     const apiCountUrl = `${apiBase}/bonepile-after-kanban-count`;
     const apiAgingCountUrl = `${apiBase}/bonepile-after-kanban-aging-count`;
-    const apiDetailUrl = `${apiBase}/bonepile-after-kanban`;
+    const apiBasicUrl = `${apiBase}/bonepile-after-kanban-basic`;
+    const apiTestInfoUrl = `${apiBase}/bonepile-after-kanban-testinfo`;
     const locationUrl = 'http://10.220.130.119:9090/api/Search/GetLocations';
     // Định nghĩa tất cả trạng thái hợp lệ
     const validStatuses = [
@@ -68,10 +69,11 @@
         try {
             // Hiển thị spinner
             showSpinner();
-            const res = await axios.get(apiCountUrl);
+            const [res, agingRes] = await Promise.all([
+                axios.get(apiCountUrl),
+                axios.get(apiAgingCountUrl)
+            ]);
             const { totalCount, statusCounts } = res.data;
-
-            const agingRes = await axios.get(apiAgingCountUrl);
             const { agingCounts } = agingRes.data;
             agingData = agingCounts;
 
@@ -236,18 +238,34 @@
             // Log payload để debug
             console.log("Sending payload:", { statuses });
 
-            const response = await axios.post(apiDetailUrl, {
-                statuses: statuses.length > 0 ? statuses : null
+            const payload = { statuses: statuses.length > 0 ? statuses : null };
+            const [basicRes, testInfoRes] = await Promise.all([
+                axios.post(apiBasicUrl, payload),
+                axios.post(apiTestInfoUrl, payload)
+            ]);
+            const tableData = basicRes.data?.data || [];
+            const testInfoData = testInfoRes.data?.data || [];
+
+            // Hợp nhất dữ liệu test_code/aging theo sn
+            const testInfoMap = {};
+            testInfoData.forEach(item => { if (item.sn) testInfoMap[item.sn] = item; });
+            tableData.forEach(row => {
+                const info = testInfoMap[row.sn];
+                if (info) {
+                    row.testCode = info.test_code || info.testCode || row.testCode;
+                    row.aging = info.aging || row.aging;
+                }
             });
-            const tableData = response.data?.data || [];
 
             const serials = Array.from(new Set(tableData.map(r => r.sn).filter(Boolean)));
             let locationMap = {};
-            try {
-                const locRes = await axios.post(locationUrl, serials);
-                locationMap = locRes.data?.data || {};
-            } catch (err) {
-                console.error('Error fetching locations', err);
+            if (serials.length) {
+                try {
+                    const [locRes] = await Promise.all([axios.post(locationUrl, serials)]);
+                    locationMap = locRes.data?.data || {};
+                } catch (err) {
+                    console.error('Error fetching locations', err);
+                }
             }
             tableData.forEach(r => { r.location = locationMap[r.sn] || ''; });
 
