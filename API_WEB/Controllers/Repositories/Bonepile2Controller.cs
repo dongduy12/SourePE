@@ -960,7 +960,7 @@ namespace API_WEB.Controllers.Repositories
                 var result = allData
                     .Select(b =>
                     {
-                        var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
+                        var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? string.Empty;
                         string status;
                         if (scrapDict.TryGetValue(sn, out var scrapInfo))
                         {
@@ -1003,7 +1003,7 @@ namespace API_WEB.Controllers.Repositories
                                 status = "RepairInRE";
                             }
                         }
-                        return new
+                        return new BonepileAfterKanbanBasicRecord
                         {
                             SN = b.SERIAL_NUMBER,
                             ModelName = b.MODEL_NAME,
@@ -1305,8 +1305,8 @@ namespace API_WEB.Controllers.Repositories
             await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
             await connection.OpenAsync();
 
-            var parameterNames = serialNumbers.Select((sn, idx) => $":sn{idx}").ToList();
-            var inClause = string.Join(",", parameterNames);
+            var parameterNames = serialNumbers.Select((sn, idx) => $"sn{idx}").ToList();
+            var inClause = string.Join(",", parameterNames.Select(p => $":{p}"));
 
             string query = $@"
                 SELECT

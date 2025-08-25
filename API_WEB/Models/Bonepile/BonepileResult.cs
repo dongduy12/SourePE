@@ -86,6 +86,19 @@ namespace API_WEB.Models.Bonepile
         public double? AGING { get; set; }
     }
 
+    public class BonepileAfterKanbanBasicRecord
+    {
+        public string SN { get; set; }
+        public string ModelName { get; set; }
+        public string MoNumber { get; set; }
+        public string ProductLine { get; set; }
+        public string WipGroupSFC { get; set; }
+        public string WipGroupKANBAN { get; set; }
+        public string ErrorFlag { get; set; }
+        public string WorkFlag { get; set; }
+        public string Status { get; set; }
+    }
+
     public class SerialNumberRequest
     {
         public List<string> SerialNumbers { get; set; }
