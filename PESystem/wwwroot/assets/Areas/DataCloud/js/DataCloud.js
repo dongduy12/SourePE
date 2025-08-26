@@ -20,6 +20,41 @@
         buttonsStyling: false
     });
 
+    // Chọn icon phù hợp theo loại tệp giống Windows
+    function getFileIcon(name, type) {
+        if (type === "Folder") return "fas fa-folder";
+
+        const ext = name.split('.').pop().toLowerCase();
+        switch (ext) {
+            case 'xlsx':
+            case 'xls':
+                return 'fas fa-file-excel text-success';
+            case 'doc':
+            case 'docx':
+                return 'fas fa-file-word text-primary';
+            case 'ppt':
+            case 'pptx':
+                return 'fas fa-file-powerpoint text-warning';
+            case 'pdf':
+                return 'fas fa-file-pdf text-danger';
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+            case 'bmp':
+                return 'fas fa-file-image text-info';
+            case 'zip':
+            case 'rar':
+            case '7z':
+                return 'fas fa-file-archive';
+            case 'txt':
+            case 'log':
+                return 'fas fa-file-alt';
+            default:
+                return 'fas fa-file';
+        }
+    }
+
 
     // Tải dữ liệu từ server (bình thường)
     function loadData(path) {
@@ -36,13 +71,13 @@
                     $('#data-cloud-items').empty(); // Sử dụng #data-cloud-items để hiển thị file/folder
                     const items = response.items.filter(item => item.name !== 'RecycleBin');
                     items.forEach(item => {
-                        const icon = item.type === "Folder" ? "fas fa-folder" : "fas fa-file"; // Sửa item.type thành item.Type
+                        const icon = getFileIcon(item.name, item.type);
                         const colElement = $('<div>').addClass('col');
-                    const itemElement = $('<div>')
-                        .addClass('data-item')
-                        .attr('custom-path', normalizePath(item.path)) // Sửa item.path thành item.Path
-                        .attr('custom-type', item.type) // Sửa item.type thành item.Type
-                        .html(`
+                        const itemElement = $('<div>')
+                            .addClass('data-item')
+                            .attr('custom-path', normalizePath(item.path)) // Sửa item.path thành item.Path
+                            .attr('custom-type', item.type) // Sửa item.type thành item.Type
+                            .html(`
                                 <i class="${icon}"></i>
                                 <span title="${item.name}">${item.name}</span>
                             `);
@@ -92,7 +127,7 @@
                         $('#data-cloud-items').html('<p class="text-muted">Không tìm thấy kết quả.</p>');
                     } else {
                         items.forEach(item => {
-                            const icon = item.type === "Folder" ? "fas fa-folder" : "fas fa-file"; // Sửa item.type thành item.Type
+                            const icon = getFileIcon(item.name, item.type);
                             const colElement = $('<div>').addClass('col');
                             const itemElement = $('<div>')
                                 .addClass('data-item')
