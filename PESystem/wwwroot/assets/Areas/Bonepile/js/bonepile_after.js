@@ -239,12 +239,28 @@
             console.log("Sending payload:", { statuses });
 
             const payload = { statuses: statuses.length > 0 ? statuses : null };
-            const [basicRes, testInfoRes] = await Promise.all([
-                axios.post(apiBasicUrl, payload),
-                axios.post(apiTestInfoUrl, payload)
-            ]);
+            const basicRes = await axios.post(apiBasicUrl, payload);
             const tableData = basicRes.data?.data || [];
-            const testInfoData = testInfoRes.data?.data || [];
+
+            const serials = Array.from(new Set(tableData.map(r => r.sn).filter(Boolean)));
+
+            let testInfoData = [];
+            if (serials.length) {
+                try {
+                    const testInfoPayload = { serialNumbers: serials };
+                    const testInfoRes = await axios.post(apiTestInfoUrl, testInfoPayload);
+                    testInfoData = (testInfoRes.data?.data || []).map(item => ({
+                        sn: item.seriaL_NUMBER,                  // map về sn
+                        testGroup: item.tesT_GROUP,
+                        testTime: item.tesT_TIME,
+                        testCode: item.tesT_CODE,
+                        errorDesc: item.erroR_DESC,
+                        aging: item.aging
+                    }));
+                } catch (err) {
+                    console.error('Error fetching test info', err);
+                }
+            }
 
             // Hợp nhất dữ liệu test_code/aging theo sn
             const testInfoMap = {};
@@ -252,12 +268,14 @@
             tableData.forEach(row => {
                 const info = testInfoMap[row.sn];
                 if (info) {
-                    row.testCode = info.test_code || info.testCode || row.testCode;
-                    row.aging = info.aging || row.aging;
+                    row.testGroup = info.testGroup;
+                    row.testTime = info.testTime;
+                    row.testCode = info.testCode;
+                    row.errorDesc = info.errorDesc;
+                    row.aging = info.aging;
                 }
             });
 
-            const serials = Array.from(new Set(tableData.map(r => r.sn).filter(Boolean)));
             let locationMap = {};
             if (serials.length) {
                 try {

@@ -693,6 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 warehouseTable.clear();
                 if (data.success) {
                     const borrowedSerials = [];
+                    const noPositionSerials = [];
                     data.data.forEach(d => {
                         warehouseTable.row.add([
                             d.serialNumber,
@@ -708,9 +709,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (d.borrowStatus === 'Borrowed') {
                             borrowedSerials.push(d.serialNumber);
                         }
+                        const noPosition = !d.shelfCode && d.columnNumber == null;
+                        if (noPosition){
+                        noPositionSerials.push(d.serialNumber);
+                    }
                     });
                     warehouseNotFound = data.notFoundSerialNumbers || [];
-                    warehouseListItems = [...warehouseNotFound, ...borrowedSerials];
+                    warehouseListItems = [...warehouseNotFound, ...borrowedSerials, ...noPositionSerials];
                     if (warehouseNotFound.length) {
                         warehouseNotFound.forEach(sn => {
                             warehouseTable.row.add([sn, 'Not found', '', '', '', '', '', '', '']);
