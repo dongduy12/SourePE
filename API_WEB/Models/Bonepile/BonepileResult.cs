@@ -86,7 +86,7 @@ namespace API_WEB.Models.Bonepile
         public double? AGING { get; set; }
     }
 
-    public class SerialNumberRequest
+    public class BonepileSerialNumberRequest
     {
         public List<string> SerialNumbers { get; set; }
     }
@@ -99,6 +99,7 @@ namespace API_WEB.Models.Bonepile
         public string TEST_CODE { get; set; }
         public string ERROR_DESC { get; set; }
         public double? AGING { get; set; }
+        public string? SERIAL_NUMBER { get; internal set; }
     }
 }
 
