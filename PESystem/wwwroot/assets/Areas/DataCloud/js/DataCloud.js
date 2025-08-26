@@ -34,7 +34,8 @@
                 if (response && response.items && Array.isArray(response.items)) { // Sửa từ response.items thành response.Items
                     updateBreadcrumb(response.currentPath); // Sửa từ response.currentPath thành response.CurrentPath
                     $('#data-cloud-items').empty(); // Sử dụng #data-cloud-items để hiển thị file/folder
-                    response.items.forEach(item => {
+                    const items = response.items.filter(item => item.name !== 'RecycleBin');
+                    items.forEach(item => {
                         const icon = item.type === "Folder" ? "fas fa-folder" : "fas fa-file"; // Sửa item.type thành item.Type
                         const colElement = $('<div>').addClass('col');
                     const itemElement = $('<div>')
@@ -86,10 +87,11 @@
                 if (response && response.items && Array.isArray(response.items)) { // Sửa từ response.items thành response.Items
                     updateBreadcrumb('Search Results'); // Cập nhật breadcrumb khi tìm kiếm
                     $('#data-cloud-items').empty();
-                    if (response.items.length === 0) {
+                    const items = response.items.filter(item => item.name !== 'RecycleBin');
+                    if (items.length === 0) {
                         $('#data-cloud-items').html('<p class="text-muted">Không tìm thấy kết quả.</p>');
                     } else {
-                        response.items.forEach(item => {
+                        items.forEach(item => {
                             const icon = item.type === "Folder" ? "fas fa-folder" : "fas fa-file"; // Sửa item.type thành item.Type
                             const colElement = $('<div>').addClass('col');
                             const itemElement = $('<div>')
