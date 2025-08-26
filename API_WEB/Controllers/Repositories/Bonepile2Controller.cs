@@ -414,317 +414,292 @@ namespace API_WEB.Controllers.Repositories
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+
         [HttpPost("adapter-repair-records")]
         public async Task<IActionResult> AdapterRepairRecords([FromBody] StatusRequestBonepile request)
         {
             try
             {
-                if (request == null)
-                {
-                    return BadRequest(new { message = "Yeu c?u khong h?p l?!" });
-                }
+                if (request == null) return BadRequest(new { message = "Yêu cầu không hợp lệ!" });
 
                 bool filterByStatus = request.Statuses?.Any() == true;
-                //var statuses = filterByStatus ? request.Statuses : null;
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
-                // L?y data t? Oracle
-                var allData = await ExecuteAdapterRepairQuery();
 
-                // L?y ApplyTaskStatus t? ScrapLists
-                var scrapCategories = await _sqlContext.ScrapLists
-                    .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
-                    .ToListAsync();
+                // 1) Lấy dữ liệu 2 nguồn
+                var baseData = await ExecuteAdapterRepairQuery();
+                var b28mData = await ExecuteAdapterReworkFgQuery();
 
-                // T?o t? ?i?n anh x? SN v?i ApplyTaskStatus va TaskNumber
-                var scrapDict = scrapCategories.ToDictionary(
-                    c => c.SN?.Trim().ToUpper() ?? "",
-                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
+                // 2) Set dùng để ép trạng thái Rework FG
+                var reworkFgSet = new HashSet<string>(
+                    b28mData.Select(x => x.SERIAL_NUMBER?.Trim().ToUpper() ?? ""),
                     StringComparer.OrdinalIgnoreCase
                 );
-                // ??nh ngh?a validStatuses
-                var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "Scrap Lacks Task",
-                    "Scrap Has Scrap",
-                    "ApprovedBGA",
-                    "Waiting approve BGA",
-                    "Waiting approve scrap",
-                    "Rework FG",
-                    "Under repair in RE",
-                    "Waiting Check Out",
-                    "Under repair in PD"
-                };
 
-                // Phan lo?i status theo yeu c?u
-                var result = allData
-                    .Select(b =>
-                    {
-                        var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
-                        string status;
-
-                        // Ki?m tra thong tin trong scrapDict
-                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
-                        {
-                            var applyTaskStatus = scrapInfo.ApplyTaskStatus;
-                            var taskNumber = scrapInfo.TaskNumber;
-
-                            if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
-                            {
-                                status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
-                            }
-                            else
-                            {
-                                status = applyTaskStatus switch
-                                {
-                                    2 => "Waiting approve scrap",
-                                    3 => "ApprovedBGA",
-                                    4 => "Waiting approve BGA",
-                                    _ => "Under repair in PD"
-                                };
-                            }
-                        }
-                        // Ki?m tra MO_NUMBER
-                        else if (b.MO_NUMBER?.Trim().StartsWith("4") == true)
-                        {
-                            status = "Rework FG";
-                        }
-                        // Ki?m tra ERROR_FLAG
-                        else
-                        {
-                            status = b.ERROR_FLAG switch
-                            {
-                                "7" => "Under repair in RE",
-                                "8" => "Waiting Check Out",
-                                "0" => "Under repair in PD",
-                                _ => "Under repair in PD"
-                            };
-                        }
-                        return new
-                        {
-                            SN = b.SERIAL_NUMBER,
-                            ModelName = b.MODEL_NAME,
-                            MoNumber = b.MO_NUMBER,
-                            ProductLine = b.PRODUCT_LINE,
-                            ErrorFlag = b.ERROR_FLAG,
-                            WorkFlag = b.WORK_FLAG,
-                            WipGroup = b.WIP_GROUP,
-                            Data11 = b.DATA11,
-                            Status = status,
-                            testTime = b.TEST_TIME,
-                            testCode = b.TEST_CODE,
-                            testGroup = b.TEST_GROUP,
-                            errorDesc = b.ERROR_DESC,
-                            repair = b.REPAIR,
-                            agingDay = b.AGING_DAY,
-                            checkInDate = b.CHECKIN_DATE
-                        };
-                    })
-                    .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase) &&
-                                (!filterByStatus || statuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase)))
+                // 3) Hợp nhất theo SN để tránh trùng (ưu tiên bản ghi đầu – bạn có thể đổi thành chọn mới nhất)
+                var allData = baseData.Concat(b28mData)
+                    .GroupBy(x => (x.SERIAL_NUMBER ?? "").Trim().ToUpper())
+                    .Select(g => g.First())
                     .ToList();
 
-                // Log result count
-                Console.WriteLine($"Result Count: {result?.Count}");
+                // Scrap dict
+                var scrapDict = (await _sqlContext.ScrapLists
+                    .Select(s => new { SN = s.SN, s.ApplyTaskStatus, s.TaskNumber })
+                    .ToListAsync())
+                    .ToDictionary(
+                        c => c.SN?.Trim().ToUpper() ?? "",
+                        c => (c.ApplyTaskStatus, c.TaskNumber),
+                        StringComparer.OrdinalIgnoreCase
+                    );
 
-                if (!result.Any())
-                {
-                    return NotFound(new { message = "Khong tim th?y d? li?u!", count = 0 });
-                }
+                var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Scrap Lacks Task","Scrap Has Scrap","ApprovedBGA","Waiting approve BGA",
+            "Waiting approve scrap","Rework FG","Under repair in RE","Waiting Check Out","Under repair in PD"
+        };
 
-                return Ok(new
+                var result = allData.Select(b =>
                 {
-                    count = result?.Count,
-                    data = result
-                });
+                    var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
+                    string status;
+
+                    // ƯU TIÊN: Thuộc B28M => luôn Rework FG
+                    if (reworkFgSet.Contains(sn))
+                    {
+                        status = "Rework FG";
+                    }
+                    else if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                    {
+                        var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+                        var taskNumber = scrapInfo.TaskNumber;
+
+                        if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
+                            status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
+                        else
+                            status = applyTaskStatus switch
+                            {
+                                2 => "Waiting approve scrap",
+                                3 => "ApprovedBGA",
+                                4 => "Waiting approve BGA",
+                                _ => "Under repair in PD"
+                            };
+                    }
+                    else if (b.MO_NUMBER?.Trim().StartsWith("4") == true)
+                    {
+                        // vẫn giữ luật cũ cho case ngoài B28M
+                        status = "Rework FG";
+                    }
+                    else
+                    {
+                        status = b.ERROR_FLAG switch
+                        {
+                            "7" => "Under repair in RE",
+                            "8" => "Waiting Check Out",
+                            _ => "Under repair in PD"
+                        };
+                    }
+
+                    return new
+                    {
+                        SN = b.SERIAL_NUMBER,
+                        ModelName = b.MODEL_NAME,
+                        MoNumber = b.MO_NUMBER,
+                        ProductLine = b.PRODUCT_LINE,
+                        ErrorFlag = b.ERROR_FLAG,
+                        WorkFlag = b.WORK_FLAG,
+                        WipGroup = b.WIP_GROUP,
+                        Data11 = b.DATA11,
+                        Status = status,
+                        testTime = b.TEST_TIME,
+                        testCode = b.TEST_CODE,
+                        testGroup = b.TEST_GROUP,
+                        errorDesc = b.ERROR_DESC,
+                        repair = b.REPAIR,
+                        agingDay = b.AGING_DAY,
+                        checkInDate = b.CHECKIN_DATE
+                    };
+                })
+                .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase)
+                         && (!filterByStatus || statuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase)))
+                .ToList();
+
+                if (!result.Any()) return NotFound(new { message = "Không tìm thấy dữ liệu!", count = 0 });
+
+                return Ok(new { count = result.Count, data = result });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
             }
         }
+
         [HttpGet("adapter-repair-status-count")]
         public async Task<IActionResult> AdapterRepairStatusCount()
         {
             try
             {
-                var repairTaskData = await ExecuteAdapterRepairQuery();
-                var scrapCategories = await _sqlContext.ScrapLists
-                .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
-                .ToListAsync();
-                //var scrapDict = scrapCategories.ToDictionary(
-                //    c => c.SN?.Trim().ToUpper() ?? "",
-                //    c => c.ApplyTaskStatus,
-                //    StringComparer.OrdinalIgnoreCase
-                //);
-                // T?o t? ?i?n anh x? SN v?i ApplyTaskStatus va TaskNumber
-                var scrapDict = scrapCategories.ToDictionary(
-                    c => c.SN?.Trim().ToUpper() ?? "",
-                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
+                var baseData = await ExecuteAdapterRepairQuery();
+                var b28mData = await ExecuteAdapterReworkFgQuery();
+
+                var reworkFgSet = new HashSet<string>(
+                    b28mData.Select(x => x.SERIAL_NUMBER?.Trim().ToUpper() ?? ""),
                     StringComparer.OrdinalIgnoreCase
                 );
-                // Phan lo?i tr?ng thai cho t?ng b?n ghi
-                var result = repairTaskData
-                    .Select(b =>
-                    {
-                        var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
-                        string status;
 
-                        // Ki?m tra thong tin trong scrapDict
-                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
-                        {
-                            var applyTaskStatus = scrapInfo.ApplyTaskStatus;
-                            var taskNumber = scrapInfo.TaskNumber;
-
-                            if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
-                            {
-                                status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
-                            }
-                            else
-                            {
-                                status = applyTaskStatus switch
-                                {
-                                    2 => "Waiting approve scrap",
-                                    3 => "ApprovedBGA",
-                                    4 => "Waiting approve BGA",
-                                    _ => "Under repair in PD"
-                                };
-                            }
-                        }
-                        // Ki?m tra MO_NUMBER
-                        else if (b.MO_NUMBER?.Trim().StartsWith("4") == true)
-                        {
-                            status = "Rework FG";
-                        }
-                        // Ki?m tra ERROR_FLAG
-                        else
-                        {
-                            status = b.ERROR_FLAG switch
-                            {
-                                "7" => "Under repair in RE",
-                                "8" => "Waiting Check Out",
-                                "0" => "Under repair in PD",
-                                _ => "Under repair in PD"
-                            };
-                        }
-
-                        return status;
-                    })
+                var allData = baseData.Concat(b28mData)
+                    .GroupBy(x => (x.SERIAL_NUMBER ?? "").Trim().ToUpper())
+                    .Select(g => g.First())
                     .ToList();
+
+                var scrapDict = (await _sqlContext.ScrapLists
+                    .Select(s => new { s.SN, s.ApplyTaskStatus, s.TaskNumber })
+                    .ToListAsync())
+                    .ToDictionary(
+                        c => c.SN?.Trim().ToUpper() ?? "",
+                        c => (c.ApplyTaskStatus, c.TaskNumber),
+                        StringComparer.OrdinalIgnoreCase
+                    );
+
+                var result = allData.Select(b =>
+                {
+                    var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
+                    if (reworkFgSet.Contains(sn)) return "Rework FG";
+
+                    if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                    {
+                        var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+                        var taskNumber = scrapInfo.TaskNumber;
+
+                        if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
+                            return string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
+
+                        return applyTaskStatus switch
+                        {
+                            2 => "Waiting approve scrap",
+                            3 => "ApprovedBGA",
+                            4 => "Waiting approve BGA",
+                            _ => "Under repair in PD"
+                        };
+                    }
+
+                    if (b.MO_NUMBER?.Trim().StartsWith("4") == true) return "Rework FG";
+
+                    return b.ERROR_FLAG switch
+                    {
+                        "7" => "Under repair in RE",
+                        "8" => "Waiting Check Out",
+                        _ => "Under repair in PD"
+                    };
+                })
+                .ToList();
 
                 var statusCounts = result
-                    .GroupBy(status => status)
-                    .Select(g => new
-                    {
-                        Status = g.Key,
-                        Count = g.Count()
-                    })
+                    .GroupBy(s => s)
+                    .Select(g => new { Status = g.Key, Count = g.Count() })
                     .ToList();
 
-                return Ok(new
-                {
-                    totalCount = result.Count,
-                    statusCounts = statusCounts
-                });
+                return Ok(new { totalCount = result.Count, statusCounts });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
             }
         }
+
 
         [HttpGet("adapter-repair-aging-count")]
         public async Task<IActionResult> AdapterRepairAgingCount()
         {
             try
             {
-                var allData = await ExecuteAdapterRepairQuery();
+                var baseData = await ExecuteAdapterRepairQuery();
+                var b28mData = await ExecuteAdapterReworkFgQuery();
 
-                var scrapCategories = await _sqlContext.ScrapLists
-                    .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
-                    .ToListAsync();
-
-                var scrapDict = scrapCategories.ToDictionary(
-                    c => c.SN?.Trim().ToUpper() ?? "",
-                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
+                var reworkFgSet = new HashSet<string>(
+                    b28mData.Select(x => x.SERIAL_NUMBER?.Trim().ToUpper() ?? ""),
                     StringComparer.OrdinalIgnoreCase
                 );
 
+                var allData = baseData.Concat(b28mData)
+                    .GroupBy(x => (x.SERIAL_NUMBER ?? "").Trim().ToUpper())
+                    .Select(g => g.First())
+                    .ToList();
+
+                var scrapDict = (await _sqlContext.ScrapLists
+                    .Select(s => new { s.SN, s.ApplyTaskStatus, s.TaskNumber })
+                    .ToListAsync())
+                    .ToDictionary(
+                        c => c.SN?.Trim().ToUpper() ?? "",
+                        c => (c.ApplyTaskStatus, c.TaskNumber),
+                        StringComparer.OrdinalIgnoreCase
+                    );
+
                 var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Scrap Lacks Task","Scrap Has Scrap","ApprovedBGA","Waiting approve BGA",
+            "Waiting approve scrap","Rework FG","Under repair in RE","Waiting Check Out","Under repair in PD"
+        };
+
+                var records = allData.Select(b =>
                 {
-                    "Scrap Lacks Task",
-                    "Scrap Has Scrap",
-                    "ApprovedBGA",
-                    "Waiting approve BGA",
-                    "Waiting approve scrap",
-                    "Rework FG",
-                    "Under repair in RE",
-                    "Waiting Check Out",
-                    "Under repair in PD"
-                };
+                    var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
+                    string status;
 
-                var records = allData
-                    .Select(b =>
+                    if (reworkFgSet.Contains(sn))
                     {
-                        var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
-                        string status;
+                        status = "Rework FG";
+                    }
+                    else if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                    {
+                        var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+                        var taskNumber = scrapInfo.TaskNumber;
 
-                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
-                        {
-                            var applyTaskStatus = scrapInfo.ApplyTaskStatus;
-                            var taskNumber = scrapInfo.TaskNumber;
-
-                            if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
-                            {
-                                status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
-                            }
-                            else
-                            {
-                                status = applyTaskStatus switch
-                                {
-                                    2 => "Waiting approve scrap",
-                                    3 => "ApprovedBGA",
-                                    4 => "Waiting approve BGA",
-                                    _ => "Under repair in PD"
-                                };
-                            }
-                        }
-                        else if (b.MO_NUMBER?.Trim().StartsWith("4") == true)
-                        {
-                            status = "Rework FG";
-                        }
+                        if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
+                            status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
                         else
-                        {
-                            status = b.ERROR_FLAG switch
+                            status = applyTaskStatus switch
                             {
-                                "7" => "Under repair in RE",
-                                "8" => "Waiting Check Out",
-                                "0" => "Under repair in PD",
+                                2 => "Waiting approve scrap",
+                                3 => "ApprovedBGA",
+                                4 => "Waiting approve BGA",
                                 _ => "Under repair in PD"
                             };
-                        }
-
-                        return new
+                    }
+                    else if (b.MO_NUMBER?.Trim().StartsWith("4") == true)
+                    {
+                        status = "Rework FG";
+                    }
+                    else
+                    {
+                        status = b.ERROR_FLAG switch
                         {
-                            SN = b.SERIAL_NUMBER,
-                            ModelName = b.MODEL_NAME,
-                            MoNumber = b.MO_NUMBER,
-                            ProductLine = b.PRODUCT_LINE,
-                            ErrorFlag = b.ERROR_FLAG,
-                            WorkFlag = b.WORK_FLAG,
-                            WipGroup = b.WIP_GROUP,
-                            Data11 = b.DATA11,
-                            Status = status,
-                            testTime = b.TEST_TIME,
-                            testCode = b.TEST_CODE,
-                            testGroup = b.TEST_GROUP,
-                            errorDesc = b.ERROR_DESC,
-                            repair = b.REPAIR,
-                            agingDay = b.AGING_DAY,
-                            checkInDate = b.CHECKIN_DATE
+                            "7" => "Under repair in RE",
+                            "8" => "Waiting Check Out",
+                            _ => "Under repair in PD"
                         };
-                    })
-                    .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase))
-                    .ToList();
+                    }
+
+                    return new
+                    {
+                        SN = b.SERIAL_NUMBER,
+                        ModelName = b.MODEL_NAME,
+                        MoNumber = b.MO_NUMBER,
+                        ProductLine = b.PRODUCT_LINE,
+                        ErrorFlag = b.ERROR_FLAG,
+                        WorkFlag = b.WORK_FLAG,
+                        WipGroup = b.WIP_GROUP,
+                        Data11 = b.DATA11,
+                        Status = status,
+                        testTime = b.TEST_TIME,
+                        testCode = b.TEST_CODE,
+                        testGroup = b.TEST_GROUP,
+                        errorDesc = b.ERROR_DESC,
+                        repair = b.REPAIR,
+                        agingDay = b.AGING_DAY,
+                        checkInDate = b.CHECKIN_DATE
+                    };
+                })
+                .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase))
+                .ToList();
 
                 var agingGroups = records
                     .GroupBy(r =>
@@ -737,25 +712,17 @@ namespace API_WEB.Controllers.Repositories
                         }
                         return ">90";
                     })
-                    .Select(g => new
-                    {
-                        AgeRange = g.Key,
-                        Count = g.Count(),
-                        Records = g.ToList()
-                    })
+                    .Select(g => new { AgeRange = g.Key, Count = g.Count(), Records = g.ToList() })
                     .ToList();
 
-                return Ok(new
-                {
-                    totalCount = records.Count,
-                    agingCounts = agingGroups
-                });
+                return Ok(new { totalCount = records.Count, agingCounts = agingGroups });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "X?y ra l?i", error = ex.Message });
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
             }
         }
+
         private async Task<List<RepairTaskResult>> ExecuteAdapterRepairQuery()
         {
             var result = new List<RepairTaskResult>();
@@ -889,6 +856,105 @@ namespace API_WEB.Controllers.Repositories
                         });
                     }
                 }
+            }
+
+            return result;
+        }
+
+        private async Task<List<RepairTaskResult>> ExecuteAdapterReworkFgQuery()
+        {
+            var result = new List<RepairTaskResult>();
+
+            await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
+            await connection.OpenAsync();
+
+            string query = @"
+        SELECT 
+            r107.SERIAL_NUMBER,
+            r107.MODEL_NAME,
+            model_desc.PRODUCT_LINE,
+            r107.MO_NUMBER,
+            r107.ERROR_FLAG,
+            r107.WORK_FLAG,
+            r107.WIP_GROUP,
+            r109_latest.TEST_GROUP,
+            r109_latest.TEST_TIME,
+            r109_latest.TEST_CODE,
+            error_desc.ERROR_DESC,
+            repair_task.DATA11,
+            rt19.DATA19_COMBINED,
+            chkin.first_checkin_date AS CHECKIN_DATE,
+            TRUNC(SYSDATE - chkin.first_checkin_date) AS AGING_DAY
+        FROM sfism4.r107 r107
+        JOIN sfis1.c_model_desc_t model_desc
+          ON r107.model_name = model_desc.model_name
+        LEFT JOIN sfism4.r_repair_task_t repair_task
+          ON r107.SERIAL_NUMBER = repair_task.SERIAL_NUMBER
+        LEFT JOIN (
+            SELECT d.SERIAL_NUMBER, MIN(d.DATE3) AS first_checkin_date
+            FROM sfism4.R_REPAIR_TASK_DETAIL_T d
+            WHERE d.DATA12 = 'CHECK_IN'
+            GROUP BY d.SERIAL_NUMBER
+        ) chkin
+          ON chkin.SERIAL_NUMBER = r107.SERIAL_NUMBER
+        LEFT JOIN (
+            SELECT d.SERIAL_NUMBER,
+                   LISTAGG(TRIM(d.DATA19), ' | ') WITHIN GROUP (ORDER BY d.DATE3) AS DATA19_COMBINED
+            FROM sfism4.R_REPAIR_TASK_DETAIL_T d
+            WHERE UPPER(d.DATA17) IN ('CONFIRM','SAVE')
+              AND d.DATA19 IS NOT NULL
+            GROUP BY d.SERIAL_NUMBER
+        ) rt19
+          ON rt19.SERIAL_NUMBER = r107.SERIAL_NUMBER
+        LEFT JOIN (
+            SELECT SERIAL_NUMBER, TEST_CODE, TEST_TIME, TEST_GROUP
+            FROM (
+                SELECT R109.SERIAL_NUMBER,
+                       R109.TEST_CODE,
+                       R109.TEST_TIME,
+                       R109.TEST_GROUP,
+                       ROW_NUMBER() OVER(PARTITION BY R109.SERIAL_NUMBER ORDER BY R109.TEST_TIME DESC, R109.TEST_CODE DESC) AS rn
+                FROM SFISM4.R109 R109
+            ) t
+            WHERE t.rn = 1
+        ) r109_latest
+          ON r109_latest.SERIAL_NUMBER = r107.SERIAL_NUMBER
+        INNER JOIN sfis1.C_ERROR_CODE_T error_desc
+          ON r109_latest.TEST_CODE = error_desc.ERROR_CODE
+        WHERE model_desc.MODEL_SERIAL = 'ADAPTER'
+          AND r107.SERIAL_NUMBER NOT IN (SELECT SERIAL_NUMBER FROM SFISM4.Z_KANBAN_TRACKING_T)
+          AND r107.MO_NUMBER LIKE '4%'
+          AND r107.WIP_GROUP LIKE '%B28M%'
+          AND r107.ERROR_FLAG IN ('7','8')
+          AND r109_latest.TEST_CODE NOT IN (
+            'BV00','PP10','BRK00','HSK00','SCR00','C028','TA00','CAR0','C010','C012',
+            'LBxx','GB00','CLExx','GL00','BHSK00','DIR02','DIR03','DR00','GF06',
+            'CLE02','CLE03','CLE04','CLE05','CLE06','CLE07','CLE08','LB01','LB02',
+            'LB03','LB04','LB05','LB06','LB07','CK00'
+          )";
+
+            using var command = new OracleCommand(query, connection);
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new RepairTaskResult
+                {
+                    SERIAL_NUMBER = reader["SERIAL_NUMBER"].ToString(),
+                    MODEL_NAME = reader["MODEL_NAME"].ToString(),
+                    PRODUCT_LINE = reader["PRODUCT_LINE"].ToString(),
+                    MO_NUMBER = reader["MO_NUMBER"].ToString(),
+                    ERROR_FLAG = reader["ERROR_FLAG"] != DBNull.Value ? reader["ERROR_FLAG"].ToString() : null,
+                    WORK_FLAG = reader["WORK_FLAG"] != DBNull.Value ? reader["WORK_FLAG"].ToString() : null,
+                    WIP_GROUP = reader["WIP_GROUP"] != DBNull.Value ? reader["WIP_GROUP"].ToString() : null,
+                    TEST_GROUP = reader["TEST_GROUP"] != DBNull.Value ? reader["TEST_GROUP"].ToString() : null,
+                    TEST_TIME = reader["TEST_TIME"]?.ToString(),
+                    TEST_CODE = reader["TEST_CODE"]?.ToString(),
+                    ERROR_DESC = reader["ERROR_DESC"]?.ToString(),
+                    DATA11 = reader["DATA11"] != DBNull.Value ? reader["DATA11"].ToString() : null,
+                    REPAIR = reader["DATA19_COMBINED"] != DBNull.Value ? reader["DATA19_COMBINED"].ToString() : null,
+                    CHECKIN_DATE = reader["CHECKIN_DATE"] != DBNull.Value ? Convert.ToDateTime(reader["CHECKIN_DATE"]) : (DateTime?)null,
+                    AGING_DAY = reader["AGING_DAY"] != DBNull.Value ? reader["AGING_DAY"].ToString() : null,
+                });
             }
 
             return result;
