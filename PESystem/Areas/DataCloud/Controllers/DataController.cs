@@ -119,12 +119,14 @@ namespace PESystem.Areas.DataCloud.Controllers
                 if (!Directory.Exists(path))
                     return NotFound($"Thư mục {path} không tồn tại.");
 
-                var folders = Directory.GetDirectories(path).Select(dir => new
-                {
-                    Name = Path.GetFileName(dir),
-                    Path = dir,
-                    Type = "Folder"
-                });
+                var folders = Directory.GetDirectories(path)
+                    .Where(dir => !Path.GetFileName(dir).Equals("RecycleBin", StringComparison.OrdinalIgnoreCase))
+                    .Select(dir => new
+                    {
+                        Name = Path.GetFileName(dir),
+                        Path = dir,
+                        Type = "Folder"
+                    });
 
                 var files = Directory.GetFiles(path).Select(file => new
                 {
@@ -330,19 +332,57 @@ namespace PESystem.Areas.DataCloud.Controllers
             }
         }
 
+        private bool IsApproxMatch(string source, string keyword)
+        {
+            if (string.IsNullOrEmpty(source) || string.IsNullOrEmpty(keyword))
+                return false;
+
+            if (source.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var distance = LevenshteinDistance(source.ToLower(), keyword.ToLower());
+            var threshold = Math.Max(1, keyword.Length / 3);
+            return distance <= threshold;
+        }
+
+        private int LevenshteinDistance(string s, string t)
+        {
+            int n = s.Length;
+            int m = t.Length;
+            var d = new int[n + 1, m + 1];
+
+            for (int i = 0; i <= n; i++) d[i, 0] = i;
+            for (int j = 0; j <= m; j++) d[0, j] = j;
+
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    int cost = s[i - 1] == t[j - 1] ? 0 : 1;
+                    d[i, j] = Math.Min(
+                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                        d[i - 1, j - 1] + cost);
+                }
+            }
+
+            return d[n, m];
+        }
+
         private List<FileSystemInfo> SearchItems(string path, string keyword)
         {
             var result = new List<FileSystemInfo>();
             try
             {
                 var directory = new DirectoryInfo(path);
+                if (directory.FullName.Equals(_recycleBinPath, StringComparison.OrdinalIgnoreCase))
+                    return result;
 
                 // Tìm kiếm file và folder trong thư mục hiện tại
                 var directories = directory.GetDirectories("*", SearchOption.TopDirectoryOnly)
-                    .Where(d => d.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+                    .Where(d => !d.Name.Equals("RecycleBin", StringComparison.OrdinalIgnoreCase) && IsApproxMatch(d.Name, keyword));
 
                 var files = directory.GetFiles("*", SearchOption.TopDirectoryOnly)
-                    .Where(f => f.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+                    .Where(f => IsApproxMatch(f.Name, keyword));
 
                 result.AddRange(directories);
                 result.AddRange(files);
@@ -352,7 +392,8 @@ namespace PESystem.Areas.DataCloud.Controllers
                 {
                     try
                     {
-                        result.AddRange(SearchItems(subDir.FullName, keyword));
+                        if (!subDir.Name.Equals("RecycleBin", StringComparison.OrdinalIgnoreCase))
+                            result.AddRange(SearchItems(subDir.FullName, keyword));
                     }
                     catch (UnauthorizedAccessException)
                     {
