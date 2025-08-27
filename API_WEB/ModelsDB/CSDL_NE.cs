@@ -42,6 +42,7 @@ namespace API_WEB.ModelsDB
         public virtual DbSet<LogKhoScrap> Logs { get; set; }
         public virtual DbSet<ProductOld> ProductOlds { get; set; }
         public virtual DbSet<KhoOk> KhoOks { get; set; }
+        public virtual DbSet<SerialNumberLog> SerialNumberLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -141,6 +142,10 @@ namespace API_WEB.ModelsDB
             modelBuilder.Entity<ProductOld>()
                 .ToTable("ProductOld")
                 .HasKey(sli => sli.SERIAL_NUMBER);
+
+            modelBuilder.Entity<SerialNumberLog>()
+                .ToTable("SerialNumberLogs")
+                .HasKey(s => s.Id);
     }
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
     }
