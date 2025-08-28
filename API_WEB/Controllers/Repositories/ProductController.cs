@@ -355,6 +355,7 @@ namespace API_WEB.Controllers
                     if(scrapItem != null || okItem != null)
                     {
                         await _sqlContext.SaveChangesAsync();
+                        await LogAction("REMOVE_FROM_OTHER_KHO", serialNumber, request.EntryPerson ?? string.Empty);
                     }
                     //Kiem tra neu SerialNumber da ton tai
                     var existingProduct = await _sqlContext.Products.FirstOrDefaultAsync(p => p.SerialNumber == serialNumber);
@@ -390,7 +391,7 @@ namespace API_WEB.Controllers
                             // Lưu cập nhật vào database
                             _sqlContext.Products.Update(existingProduct);
                             await _sqlContext.SaveChangesAsync();
-
+                            await LogAction("UPDATE_LOCATION", serialNumber, request.EntryPerson ?? string.Empty);
                             results.Add(new { serialNumber, success = true, message = "Sản phẩm đã được cập nhật vị trí." });
                         }
                         else { results.Add(new { serialNumber, success = false, message = $"SerialNumber{serialNumber} da ton tai trong he thong" }); }
@@ -467,6 +468,7 @@ namespace API_WEB.Controllers
                     };
                     _sqlContext.Products.Add(newProduct);
                     await _sqlContext.SaveChangesAsync();
+                    await LogAction("IMPORT_PRODUCT", serialNumber, request.EntryPerson ?? string.Empty);
                     results.Add(new { serialNumber, success = true, message = "Da them san pham thanh cong" });
                 }
                 return Ok(new { success = true, results });
@@ -877,6 +879,17 @@ namespace API_WEB.Controllers
                 return StatusCode(500, new { success = false, message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
-
+        private async Task LogAction (string action, string serialNumber, string user, string note = null)
+        {
+            _sqlContext.Logs.Add(new LogKhoScrap
+            {
+                Action = action,
+                SerialNumber = serialNumber,
+                User = user,
+                Note = note,
+                Timestamp = DateTime.Now
+            });
+            await _sqlContext.SaveChangesAsync();
+        }
     }
 }

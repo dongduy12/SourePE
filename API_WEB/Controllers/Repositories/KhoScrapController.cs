@@ -181,7 +181,7 @@ namespace API_WEB.Controllers.Repositories
                     _sqlContext.KhoScraps.Add(newProduct);
                     serialsToUpdateOracle.Add(serialNumber);
                     // Ghi log
-                    await LogAction("IMPORT", serialNumber, request.EntryPerson, "");
+                    await LogAction("IMPORT_SCRAP", serialNumber, request.EntryPerson, "");
                     results.Add(new
                     {
                         serialNumber,

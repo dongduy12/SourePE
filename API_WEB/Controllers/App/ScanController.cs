@@ -1,12 +1,40 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using API_WEB.ModelsDB;
+using Microsoft.AspNetCore.Mvc;
 
 namespace API_WEB.Controllers.App
 {
-    public class ScanController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ScanController : ControllerBase
     {
-        public IActionResult Index()
+        private readonly CSDL_NE _context;
+
+        public ScanController(CSDL_NE context)
         {
-            return View();
+            _context = context;
         }
+
+        [HttpPost("save")]
+        public async Task<IActionResult> SaveSerialNumber([FromBody] SerialNumberRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.SerialNumber))
+            {
+                return BadRequest("SerialNumber is required.");
+            }
+
+            var log = new ScanLog
+            {
+                SerialNumber = request.SerialNumber,
+                CreatedAt = DateTime.Now
+            };
+
+            _context.ScanLogs.Add(log);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Serial number saved successfully." });
+        }
+    }
+    public class SerialNumberRequest
+    {
+        public string SerialNumber { get; set; } = string.Empty;
     }
 }
