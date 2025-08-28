@@ -12,7 +12,8 @@
         "WatitingScrap",
         "ApproveBGA",
         "RepairInRE",
-        "WaitingLink"
+        "WaitingLink",
+        "Linked",
     ];
 
     const statusColorMap = {
@@ -361,6 +362,7 @@
                                                                             <option value="WatitingScrap">Waiting SPE Approve Scrap</option>
                                                                             <option value="RepairInRE">Under Repair in RE</option>
                                                                             <option value="WaitingLink">Waiting Link</option>
+                                                                            <option value="Linked">Waiting Link</option>
                                                                         </select>
                                                                     </div>
                                                                 `;

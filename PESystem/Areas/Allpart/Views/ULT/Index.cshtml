@@ -236,7 +236,7 @@
 
                 if (typeOption === '1') {
                     // Theo SN (chia batch)
-                    const batchSize = 50;
+                    const batchSize = 5;
                     for (let i = 0; i < inputList.length; i += batchSize) {
                         const batch = inputList.slice(i, i + batchSize);
                         const sns = batch.join(';');
@@ -249,7 +249,7 @@
                     }
                 } else if (typeOption === '2') {
                     // Theo ULT (chia batch)
-                    const batchSize = 50;
+                    const batchSize = 5;
                     for (let i = 0; i < inputList.length; i += batchSize) {
                         const batch = inputList.slice(i, i + batchSize);
                         const ults = batch.join(';');

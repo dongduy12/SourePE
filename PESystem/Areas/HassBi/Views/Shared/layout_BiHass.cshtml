@@ -31,43 +31,6 @@
     </script>
     <div class="layout">
         <header class="header d-flex justify-content-between align-items-center" id="header">
-            <div class="d-flex align-items-center">
-                <button class="btn btn-link text-decoration-none d-md-none me-2" id="sidebarToggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <span class="input-group-text bg-transparent border-0" onclick="toggleSearch()">
-                    <i class="fas fa-search" style="cursor: pointer;"></i>
-                </span>
-            </div>
-            <ul class="d-flex align-items-center">
-                @if (User.Identity.IsAuthenticated)
-                {
-                    <li class="nav-item dropdown">
-                        <a class="nav-link d-flex align-items-center avatar-link" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="~/assets/img/avatar.png" class="user-avatar" alt="User" style="width: 40px; height: 40px;">
-                            <span class="d-none d-md-block ps-2">@User.Identity.Name</span>
-                        </a>
-
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li class="dropdown-header text-center">
-                                <h6>@User.Identity.Name</h6>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li class="nav-item text-center">
-                                <a class="nav-link avatar-link" href="#">
-                                    <img src="~/assets/img/avatar.png" class="user-avatar mb-2" alt="User" style="width: 50px; height: 50px;">
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li class="nav-item text-center">
-                                <form asp-action="Logout" asp-controller="Account" method="post" style="display:inline;">
-                                    <button type="submit" class="btn btn-link">Đăng xuất</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-                }
-            </ul>
         </header>
         <!-- Sidebar dọc -->
         <div id="sidebar" class="sidebar">

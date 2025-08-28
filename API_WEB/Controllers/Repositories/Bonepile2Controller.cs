@@ -81,6 +81,10 @@ namespace API_WEB.Controllers.Repositories
                     {
                         status = scrapCategory.Category == "Scrap" ? "Scrap" : "WaitingApproveScrap";
                     }
+                    else if (b.WIP_GROUP.Contains("B31M"))
+                    {
+                        status = "WaitingLink";
+                    }
                     else
                     {
                         // Khong co d? li?u trong ScrapLists, dung ERROR_FLAG
@@ -89,8 +93,7 @@ namespace API_WEB.Controllers.Repositories
                             "7" => "Repair",
                             "8" => "CheckOut",
                             "1" => "CheckIn",
-                            "0" => b.WIP_GROUP == "KANBAN_IN" ? "WaitingKanBanIn" : "Online",
-                            "2" => "WaitingLink",
+                            "0" => b.WIP_GROUP.Contains("KANBAN_IN") ? "WaitingKanBanIn" : "Online",
                             _ => "Unknown" // X? ly cac gia tr? ERROR_FLAG khong xac ??nh
                         };
                     }
@@ -198,6 +201,9 @@ namespace API_WEB.Controllers.Repositories
                     if (scrapCategory != null)
                     {
                         status = scrapCategory.Category == "Scrap" ? "Scrap" : "WaitingApproveScrap";
+                    }else if (b.WIP_GROUP.Contains("B31M"))
+                    {
+                        status = "WaitingLink";
                     }
                     else
                     {
@@ -206,14 +212,12 @@ namespace API_WEB.Controllers.Repositories
                             "7" => "Repair",
                             "8" => "CheckOut",
                             "1" => "CheckIn",
-                            "2" => "WaitingLink",
-                            "0" => b.WIP_GROUP == "KANBAN_IN" ? "WaitingKanBanIn" : "Online",
+                            "0" => b.WIP_GROUP.Contains("KANBAN_IN") ? "WaitingKanBanIn" : "Online",
                             //"0" => "Online",
-                            _ => "Unknown"
+                            _ => "Repair"
                         };
                     }
 
-                    // Ch? ??m n?u tr?ng thai h?p l? va n?m trong danh sach yeu c?u
                     if (validStatuses.Contains(status) && request.Statuses.Contains(status))
                     {
                         statusCounts[status]++;

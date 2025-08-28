@@ -90,8 +90,7 @@
         </main>
     </div>
 
-
-    <script src="~/js/site.min.js"></script>
+    <script src="~/js/site.min.js?v=@DateTime.Now.Ticks"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/all-fa-icon/js/all.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
