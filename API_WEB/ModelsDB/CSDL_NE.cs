@@ -44,6 +44,7 @@ namespace API_WEB.ModelsDB
         public virtual DbSet<KhoOk> KhoOks { get; set; }
         public virtual DbSet<ScanLog> ScanLogs { get; set; }
 
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Export>(entity =>
@@ -142,9 +143,6 @@ namespace API_WEB.ModelsDB
             modelBuilder.Entity<ProductOld>()
                 .ToTable("ProductOld")
                 .HasKey(sli => sli.SERIAL_NUMBER);
-            modelBuilder.Entity<ScanLog>()
-                .ToTable("ScanLogs")
-                .HasKey(s => s.Id);
         }
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
     }
